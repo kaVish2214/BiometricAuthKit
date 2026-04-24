@@ -222,5 +222,21 @@ extension BiometricAuthManager {
             }
         }
     }
+    
+    /// Notifies the delegator on the main queue when the in-process state changes.
+    ///
+    /// This method is a no-op if `value` and `newValue` are equal.
+    ///
+    /// - Parameters:
+    ///   - value: The previous value of ``isAuthRequestInProcess``.
+    ///   - newValue: The new value of ``isAuthRequestInProcess``.
+    private func handleRequestInProcessChange(from value: Bool, to newValue: Bool) {
+        guard value != newValue else {
+            return
+        }
+        DispatchQueue.main.async { [weak self] in
+            self?.delegator.authenticationRequestInProcess(didChange: value, to: newValue)
+        }
+    }
 }
 

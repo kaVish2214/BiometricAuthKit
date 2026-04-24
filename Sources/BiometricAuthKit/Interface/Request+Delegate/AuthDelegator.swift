@@ -27,7 +27,7 @@ import Foundation
 ///     }
 /// }
 /// ```
-public protocol BiometricAuthenticationDelegator: Sendable {
+public protocol BiometricAuthenticationDelegator {
 
     /// Called when the user has been successfully authenticated via biometrics.
     func authenticated()
@@ -36,4 +36,14 @@ public protocol BiometricAuthenticationDelegator: Sendable {
     ///
     /// - Parameter error: The specific reason authentication did not succeed.
     func authenticationFailed(with error: BiometricAuthenticationError)
+    
+    
+    /// Called when the authentication request's in-process state changes.
+    ///
+    /// Use this to update UI elements such as activity indicators when authentication begins or ends.
+    ///
+    /// - Parameters:
+    ///   - from: The previous in-process state.
+    ///   - to: The new in-process state.
+    func authenticationRequestInProcess(didChange from: Bool, to: Bool)
 }
