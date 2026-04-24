@@ -436,3 +436,120 @@ struct ReuseWindowTests {
         #expect(delegator.inProcessChanges.count == 2)
     }
 }
+
+// MARK: - Delegator Delivery Tests
+
+@Suite("Delegator Delivery")
+struct DelegatorDeliveryTests {
+
+    @Test("delegator receives authenticated callback when using completion API")
+    func delegatorAuthenticatedWithCompletionAPI() async {
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(
+            requestor: MockRequestor(canPerform: false),
+            delegator: delegator
+        )
+
+        let result = await withCheckedContinuation { (continuation: CheckedContinuation<BiometricAuthenticationResult, Never>) in
+            manager.authenticate(Date()) { result in
+                continuation.resume(returning: result)
+            }
+        }
+
+        if case .success = result {
+            #expect(delegator.didAuthenticate == true)
+            #expect(delegator.authenticateCount == 1)
+            #expect(delegator.authenticationError == nil)
+        } else {
+            Issue.record("Expected .success")
+        }
+    }
+
+    @Test("delegator receives inProcess changes when using completion API")
+    func delegatorInProcessChangesWithCompletionAPI() async {
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(
+            requestor: MockRequestor(canPerform: false),
+            delegator: delegator
+        )
+
+        _ = await withCheckedContinuation { (continuation: CheckedContinuation<BiometricAuthenticationResult, Never>) in
+            manager.authenticate(Date()) { result in
+                continuation.resume(returning: result)
+            }
+        }
+
+        #expect(delegator.inProcessChanges.count == 2)
+        #expect(delegator.inProcessChanges[0].from == false)
+        #expect(delegator.inProcessChanges[0].to == true)
+        #expect(delegator.inProcessChanges[1].from == true)
+        #expect(delegator.inProcessChanges[1].to == false)
+    }
+
+    @Test("delegator receives authenticated callback via delegate-only path")
+    func delegatorAuthenticatedViaDelegateOnly() async {
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(
+            requestor: MockRequestor(canPerform: false),
+            delegator: delegator
+        )
+
+        manager.authenticate(Date())
+        await drainMainQueue()
+
+        #expect(delegator.didAuthenticate == true)
+        #expect(delegator.authenticateCount == 1)
+        #expect(delegator.authenticationError == nil)
+    }
+
+    @Test("delegator and completion handler both fire for reuse window shortcut")
+    func delegatorAndCompletionBothFireOnReuse() async {
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(
+            requestor: MockRequestor(canPerform: false, reuseDuration: 5),
+            delegator: delegator
+        )
+
+        // First auth to set timestamp
+        manager.authenticate(Date())
+        await drainMainQueue()
+        delegator.reset()
+
+        // Second auth within reuse window using completion API
+        let result = await withCheckedContinuation { (continuation: CheckedContinuation<BiometricAuthenticationResult, Never>) in
+            manager.authenticate(Date()) { result in
+                continuation.resume(returning: result)
+            }
+        }
+
+        if case .success = result {
+            #expect(delegator.didAuthenticate == true)
+            #expect(delegator.authenticateCount == 1)
+        } else {
+            Issue.record("Expected .success")
+        }
+        // Reuse path skips isAuthRequestInProcess, so no in-process changes
+        #expect(delegator.inProcessChanges.isEmpty)
+    }
+
+    @Test("delegator authenticated count increments across multiple calls")
+    func delegatorCountIncrementsAcrossCalls() async {
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(
+            requestor: MockRequestor(canPerform: false),
+            delegator: delegator
+        )
+
+        manager.authenticate(Date())
+        await drainMainQueue()
+        #expect(delegator.authenticateCount == 1)
+
+        manager.authenticate(Date())
+        await drainMainQueue()
+        #expect(delegator.authenticateCount == 2)
+
+        manager.authenticate(Date())
+        await drainMainQueue()
+        #expect(delegator.authenticateCount == 3)
+    }
+}
