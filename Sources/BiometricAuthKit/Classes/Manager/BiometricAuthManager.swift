@@ -157,26 +157,15 @@ extension BiometricAuthManager {
     ///
     /// - Parameter requestTime: The timestamp to record for this authentication request.
     public func authenticate(_ requestTime: Date) {
-        guard !isAuthRequestInProcess else {
+        guard !isAuthRequestInProcess else { return }
+        if let previous = previousAuthenticationTime,
+           requestor.preferredAuthenticationAllowableReuseDuration() > 0,
+           requestTime.timeIntervalSince(previous) < requestor.preferredAuthenticationAllowableReuseDuration() {
+            notifyAuth(true, error: nil)
             return
         }
-        if let previousAuthenticationTime = self.previousAuthenticationTime {
-            if self.requestor.preferredAuthenticationAllowableReuseDuration() > 0 {
-                let interval = requestTime.timeIntervalSince(previousAuthenticationTime)
-                if interval < self.requestor.preferredAuthenticationAllowableReuseDuration() {
-                    self.notifyAuth(true, error: nil)
-                }else {
-                    isAuthRequestInProcess = true
-                    validateAuthenticationRequest(requestTime)
-                }
-            }else {
-                isAuthRequestInProcess = true
-                validateAuthenticationRequest(requestTime)
-            }
-        }else {
-            isAuthRequestInProcess = true
-            validateAuthenticationRequest(requestTime)
-        }
+        isAuthRequestInProcess = true
+        validateAuthenticationRequest(requestTime)
     }
     
     /// Validates and presents the system biometric prompt using the requestor's configuration.
