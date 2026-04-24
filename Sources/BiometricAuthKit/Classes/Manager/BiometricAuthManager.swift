@@ -26,7 +26,8 @@ import LocalAuthentication
 ///     delegator: myDelegate
 /// )
 ///
-/// if manager.isAuthenticationSupported && manager.isAuthenticationPermitted {
+/// let authType = manager.availableAuthenticationType
+/// if authType != .none {
 ///     manager.authenticate(Date())
 /// }
 /// ```
@@ -127,24 +128,17 @@ extension BiometricAuthManager {
     
     /// A Boolean value indicating whether the user has granted permission to use biometric authentication.
     public var isAuthenticationPermitted: Bool {
-        switch self.availableAuthenticationType {
-        case .faceIdentification(let permitted):
-            return permitted
-        case .touchIdentification(permitted: let permitted):
+        switch availableAuthenticationType {
+        case .faceIdentification(let permitted), .touchIdentification(let permitted):
             return permitted
         case .none:
             return false
         }
     }
-    
+
     /// A Boolean value indicating whether the device supports biometric authentication (Face ID or Touch ID).
     public var isAuthenticationSupported: Bool {
-        switch self.availableAuthenticationType {
-        case .faceIdentification, .touchIdentification:
-            return true
-        case .none:
-            return false
-        }
+        availableAuthenticationType != .none
     }
     
     /// Initiates a biometric authentication attempt.

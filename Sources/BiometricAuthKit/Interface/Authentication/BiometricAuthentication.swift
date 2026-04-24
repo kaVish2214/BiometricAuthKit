@@ -24,7 +24,8 @@ import Foundation
 ///     delegator: myDelegate
 /// )
 ///
-/// if auth.isAuthenticationSupported && auth.isAuthenticationPermitted {
+/// let authType = auth.availableAuthenticationType
+/// if authType != .none {
 ///     auth.authenticate(Date())
 /// }
 /// ```
