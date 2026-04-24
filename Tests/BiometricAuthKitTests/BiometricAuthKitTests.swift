@@ -553,3 +553,120 @@ struct DelegatorDeliveryTests {
         #expect(delegator.authenticateCount == 3)
     }
 }
+
+// MARK: - AuthRequestor Default Implementation Tests
+
+private struct MinimalRequestor: BiometricAuthenticationRequestor {
+    func preferredAuthenticationReason() -> String { "Test reason" }
+}
+
+@Suite("AuthRequestor Defaults")
+struct AuthRequestorDefaultTests {
+
+    @Test("canPerformAuthentication defaults to true")
+    func defaultCanPerform() {
+        #expect(MinimalRequestor().canPerformAuthentication() == true)
+    }
+
+    @Test("preferredAuthenticationAllowableReuseDuration defaults to zero")
+    func defaultReuseDuration() {
+        #expect(MinimalRequestor().preferredAuthenticationAllowableReuseDuration() == 0)
+    }
+
+    @Test("preferredAuthenticationPolicy defaults to ownerAuthentication")
+    func defaultPolicy() {
+        #expect(MinimalRequestor().preferredAuthenticationPolicy() == .ownerAuthentication)
+    }
+
+    @Test("preferredAuthenticationFallbackTitle defaults to passcode prompt")
+    func defaultFallbackTitle() {
+        #expect(MinimalRequestor().preferredAuthenticationFallbackTitle() == "Please use your passcode.")
+    }
+}
+
+// MARK: - Additional BiometricAuthenticationError Tests
+
+@Suite("BiometricAuthenticationError Extended")
+struct BiometricAuthenticationErrorExtendedTests {
+
+    @Test("init with unknown LAError code returns .other")
+    func unknownCodeReturnsOther() {
+        let laError = LAError(LAError.Code(rawValue: -99)!)
+        #expect(BiometricAuthenticationError(laError) == .other)
+    }
+
+    @Test("different error cases are not equal")
+    func differentCasesNotEqual() {
+        #expect(BiometricAuthenticationError.failed != .canceledByUser)
+        #expect(BiometricAuthenticationError.canceledByUser != .fallback)
+        #expect(BiometricAuthenticationError.fallback != .canceledBySystem)
+        #expect(BiometricAuthenticationError.canceledBySystem != .passcodeNotSet)
+        #expect(BiometricAuthenticationError.passcodeNotSet != .biometryNotAvailable)
+        #expect(BiometricAuthenticationError.biometryNotAvailable != .biometryNotEnrolled)
+        #expect(BiometricAuthenticationError.biometryNotEnrolled != .biometryLockedout)
+        #expect(BiometricAuthenticationError.biometryLockedout != .other)
+        #expect(BiometricAuthenticationError.other != .failed)
+    }
+
+    @Test("errorDescription content for remaining cases")
+    func remainingErrorDescriptions() {
+        #expect(BiometricAuthenticationError.fallback.errorDescription?.contains("fallback") == true)
+        #expect(BiometricAuthenticationError.canceledBySystem.errorDescription?.contains("canceled") == true)
+        #expect(BiometricAuthenticationError.biometryNotAvailable.errorDescription?.contains("not available") == true)
+        #expect(BiometricAuthenticationError.biometryNotEnrolled.errorDescription?.contains("enrolled") == true)
+        #expect(BiometricAuthenticationError.biometryLockedout.errorDescription?.contains("locked") == true)
+        #expect(BiometricAuthenticationError.other.errorDescription?.contains("try again") == true)
+    }
+}
+
+// MARK: - Additional BiometricAuthenticationType Tests
+
+@Suite("BiometricAuthenticationType Collections")
+struct BiometricAuthenticationTypeCollectionTests {
+
+    @Test("Set deduplicates identical cases")
+    func setDeduplication() {
+        let set: Set<BiometricAuthenticationType> = [
+            .faceIdentification(permitted: true),
+            .faceIdentification(permitted: true),
+            .touchIdentification(permitted: false),
+        ]
+        #expect(set.count == 2)
+    }
+
+    @Test("Set distinguishes all three case families")
+    func setDistinguishesAllCases() {
+        let set: Set<BiometricAuthenticationType> = [
+            .faceIdentification(permitted: true),
+            .touchIdentification(permitted: true),
+            .none,
+        ]
+        #expect(set.count == 3)
+    }
+
+    @Test("Set distinguishes same case with different associated values")
+    func setDistinguishesDifferentPermissions() {
+        let set: Set<BiometricAuthenticationType> = [
+            .faceIdentification(permitted: true),
+            .faceIdentification(permitted: false),
+        ]
+        #expect(set.count == 2)
+    }
+}
+
+// MARK: - Additional BiometricAuthenticationPolicy Tests
+
+@Suite("BiometricAuthenticationPolicy Equality")
+struct BiometricAuthenticationPolicyEqualityTests {
+
+    @Test("same policy cases are equal")
+    func sameCasesEqual() {
+        #expect(BiometricAuthenticationPolicy.ownerAuthentication == .ownerAuthentication)
+        #expect(BiometricAuthenticationPolicy.ownerAuthenticationWithBiometrics == .ownerAuthenticationWithBiometrics)
+    }
+
+    @Test("different policy cases are not equal")
+    func differentCasesNotEqual() {
+        #expect(BiometricAuthenticationPolicy.ownerAuthentication != .ownerAuthenticationWithBiometrics)
+    }
+}
