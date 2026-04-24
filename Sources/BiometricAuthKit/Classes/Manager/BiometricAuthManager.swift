@@ -103,7 +103,7 @@ extension BiometricAuthManager {
         
         let type: BiometricAuthenticationType
         if #available(macOS 10.13.2, *) {
-            // In iOS11 or later, determine type by `LABiometryType`
+            // On macOS 10.13.2 or later, determine type by `LABiometryType`
             switch context.biometryType {
             case .faceID:
                 type = .faceIdentification(permitted: isEvaluateSuccess)
