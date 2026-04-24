@@ -28,7 +28,7 @@ import Foundation
 ///     print("No biometric authentication available")
 /// }
 /// ```
-public enum BiometricAuthenticationType: Hashable {
+public enum BiometricAuthenticationType: Hashable, Sendable {
 
     /// Face ID authentication.
     ///
