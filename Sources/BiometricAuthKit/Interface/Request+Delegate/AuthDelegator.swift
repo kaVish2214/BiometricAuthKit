@@ -25,6 +25,10 @@ import Foundation
 ///     func authenticationFailed(with error: BiometricAuthenticationError) {
 ///         print(error.localizedDescription)
 ///     }
+///
+///     func authenticationRequestInProcess(didChange from: Bool, to: Bool) {
+///         // Show or hide an activity indicator
+///     }
 /// }
 /// ```
 public protocol BiometricAuthenticationDelegator {

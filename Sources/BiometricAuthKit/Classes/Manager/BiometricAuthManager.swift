@@ -44,7 +44,11 @@ public final class BiometricAuthManager: NSObject, BiometricAuthentication, @unc
     let delegator: any BiometricAuthenticationDelegator
 
     /// A Boolean value indicating whether an authentication request is currently in progress.
-    private(set) public var isAuthRequestInProcess: Bool = false
+    private(set) public var isAuthRequestInProcess: Bool = false {
+        didSet {
+            self.handleRequestInProcessChange(from: oldValue, to: isAuthRequestInProcess)
+        }
+    }
 
     /// The timestamp of the most recent successful authentication, used for reuse duration checks.
     private(set) var previousAuthenticationTime: Date? = nil
