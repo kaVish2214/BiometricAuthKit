@@ -208,7 +208,7 @@ extension BiometricAuthManager {
     
     /// Invalidates the stored timestamp of the most recent successful authentication,
     /// forcing fresh biometric verification on the next call to ``authenticate(_:)``.
-    public func inivalidateRecentBiometricAuthenticationStamp() {
+    public func invalidateRecentBiometricAuthenticationStamp() {
         self.previousAuthenticationTime = nil
     }
     

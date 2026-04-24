@@ -75,5 +75,5 @@ public protocol BiometricAuthentication: Sendable {
     ///
     /// After calling this method, the next call to ``authenticate(_:)`` will require
     /// fresh biometric verification regardless of the requestor's reuse duration.
-    func inivalidateRecentBiometricAuthenticationStamp()
+    func invalidateRecentBiometricAuthenticationStamp()
 }
