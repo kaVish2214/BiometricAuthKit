@@ -25,7 +25,7 @@ import Foundation
 ///     print("Authentication failed: \(error.localizedDescription)")
 /// }
 /// ```
-public enum BiometricAuthenticationResult {
+public enum BiometricAuthenticationResult: Sendable {
 
     /// The user was authenticated successfully.
     case success

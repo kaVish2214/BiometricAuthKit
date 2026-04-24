@@ -17,7 +17,7 @@ import LocalAuthentication
 /// to convert an `LAError` into a `BiometricAuthenticationError`.
 ///
 /// Each case provides a localized description through the `LocalizedError` conformance.
-public enum BiometricAuthenticationError: Error {
+public enum BiometricAuthenticationError: Error, Sendable {
 
     /// The user failed to provide valid biometric credentials.
     case failed

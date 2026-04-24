@@ -20,7 +20,7 @@ import LocalAuthentication
 /// ```swift
 /// let policy: BiometricAuthenticationPolicy = .ownerAuthenticationWithBiometrics
 /// ```
-public enum BiometricAuthenticationPolicy {
+public enum BiometricAuthenticationPolicy: Sendable {
 
     /// Authenticate using biometrics only (Face ID or Touch ID).
     ///
