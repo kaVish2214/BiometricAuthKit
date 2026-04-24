@@ -168,14 +168,39 @@ extension BiometricAuthManager {
         validateAuthenticationRequest(requestTime)
     }
     
+    /// Initiates a biometric authentication attempt and delivers the result via a completion handler.
+    ///
+    /// Behaves identically to ``authenticate(_:)`` but additionally calls the completion handler
+    /// with a ``BiometricAuthenticationResult`` on the main queue. The delegator callbacks are
+    /// still invoked alongside the completion handler.
+    ///
+    /// - Parameters:
+    ///   - requestTime: The timestamp to record for this authentication request.
+    ///   - completion: A closure called on the main queue with the authentication result.
+    public func authenticate(_ requestTime: Date, completion: @escaping @Sendable (BiometricAuthenticationResult) -> Void) {
+        guard !isAuthRequestInProcess else { return }
+        if let previous = previousAuthenticationTime,
+           requestor.preferredAuthenticationAllowableReuseDuration() > 0,
+           requestTime.timeIntervalSince(previous) < requestor.preferredAuthenticationAllowableReuseDuration() {
+            notifyAuth(true, error: nil, completion: completion)
+            return
+        }
+        isAuthRequestInProcess = true
+        validateAuthenticationRequest(requestTime, completion: completion)
+    }
+    
     /// Validates and presents the system biometric prompt using the requestor's configuration.
-    private func validateAuthenticationRequest(_ requestTime: Date) {
+    ///
+    /// - Parameters:
+    ///   - requestTime: The timestamp to record for this authentication request.
+    ///   - completion: An optional closure called on the main queue with the authentication result.
+    private func validateAuthenticationRequest(_ requestTime: Date, completion: (@Sendable (BiometricAuthenticationResult) -> Void)? = nil) {
         guard requestor.canPerformAuthentication() else {
             defer {
                 self.isAuthRequestInProcess = false
                 self.previousAuthenticationTime = requestTime
             }
-            self.notifyAuth(true, error: nil)
+            self.notifyAuth(true, error: nil, completion: completion)
             return
         }
         self.context = LAContext()
@@ -188,7 +213,7 @@ extension BiometricAuthManager {
                     self?.previousAuthenticationTime = requestTime
                 }
             }
-            self?.notifyAuth(success, error: error)
+            self?.notifyAuth(success, error: error, completion: completion)
         }
     }
     
@@ -204,13 +229,20 @@ extension BiometricAuthManager {
         self.previousAuthenticationTime = nil
     }
     
-    /// Dispatches the authentication result to the delegator on the main queue.
-    private func notifyAuth(_ success: Bool, error: Error?) {
+    /// Dispatches the authentication result to the delegator and optional completion handler on the main queue.
+    ///
+    /// - Parameters:
+    ///   - success: Whether the authentication attempt succeeded.
+    ///   - error: The error returned by the LocalAuthentication framework, or `nil` on success.
+    ///   - completion: An optional closure called with the corresponding ``BiometricAuthenticationResult``.
+    private func notifyAuth(_ success: Bool, error: Error?, completion: (@Sendable (BiometricAuthenticationResult) -> Void)? = nil) {
         DispatchQueue.main.async { [weak self] in
             if success {
+                completion?(.success)
                 self?.delegator.authenticated()
             }else {
                 let contextError = error as? LAError
+                completion?(.failure(.init(contextError)))
                 self?.delegator.authenticationFailed(with: .init(contextError))
             }
         }

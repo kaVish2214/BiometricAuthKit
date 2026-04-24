@@ -68,6 +68,16 @@ public protocol BiometricAuthentication: Sendable {
     /// - Parameter requestTime: The timestamp to record for this authentication request.
     func authenticate(_ requestTime: Date)
 
+    /// Initiates a biometric authentication attempt and delivers the result via a completion handler.
+    ///
+    /// Use this method as a closure-based alternative to the ``BiometricAuthenticationDelegator`` callbacks.
+    /// The completion handler is called on the main queue.
+    ///
+    /// - Parameters:
+    ///   - requestTime: The timestamp to record for this authentication request.
+    ///   - completion: A closure called with the ``BiometricAuthenticationResult`` when authentication finishes.
+    func authenticate(_ requestTime: Date, completion: @escaping @Sendable (BiometricAuthenticationResult) -> Void)
+
     /// Cancels any in-progress authentication request.
     func cancelAuthentication()
 
