@@ -8,9 +8,6 @@
 import Foundation
 
 
-
-
-
 /// Represents the type of biometric authentication available on the current device.
 ///
 /// Use this enumeration to determine which biometric authentication mechanism

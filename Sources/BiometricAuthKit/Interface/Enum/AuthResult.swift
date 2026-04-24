@@ -8,9 +8,6 @@
 import Foundation
 
 
-
-
-
 /// The outcome of a biometric authentication attempt.
 ///
 /// Use this enumeration to handle the result of authenticating with Face ID or Touch ID.

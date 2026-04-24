@@ -8,7 +8,6 @@
 import Foundation
 
 
-
 /// The main interface for performing biometric authentication on a device.
 ///
 /// Conforming types coordinate the full authentication lifecycle — checking availability,

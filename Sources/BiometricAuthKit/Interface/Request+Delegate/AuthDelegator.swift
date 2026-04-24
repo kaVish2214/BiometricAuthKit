@@ -8,9 +8,6 @@
 import Foundation
 
 
-
-
-
 /// A delegate that receives the outcome of a biometric authentication attempt.
 ///
 /// Conform to this protocol to handle success and failure callbacks

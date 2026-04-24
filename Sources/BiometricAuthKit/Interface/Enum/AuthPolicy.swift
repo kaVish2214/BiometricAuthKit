@@ -9,9 +9,6 @@ import Foundation
 import LocalAuthentication
 
 
-
-
-
 /// The policy that determines what authentication methods are acceptable.
 ///
 /// Use this enumeration to specify whether biometric-only authentication is required

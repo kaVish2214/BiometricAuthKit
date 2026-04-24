@@ -8,9 +8,6 @@
 import Foundation
 
 
-
-
-
 /// Configures how a biometric authentication request is presented and evaluated.
 ///
 /// Conform to this protocol to supply the authentication reason, fallback title,
