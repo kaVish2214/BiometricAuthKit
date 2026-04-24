@@ -215,6 +215,7 @@ extension BiometricAuthManager {
     public func cancelAuthentication() {
         self.context?.invalidate()
         self.context = nil
+        self.isAuthRequestInProcess = false
     }
     
     /// Invalidates the stored timestamp of the most recent successful authentication,
@@ -234,7 +235,7 @@ extension BiometricAuthManager {
             if success {
                 completion?(.success)
                 self?.delegator.authenticated()
-            }else {
+            } else {
                 let contextError = error as? LAError
                 completion?(.failure(.init(contextError)))
                 self?.delegator.authenticationFailed(with: .init(contextError))
