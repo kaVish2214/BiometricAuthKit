@@ -28,7 +28,7 @@ import Foundation
 ///     }
 /// }
 /// ```
-public protocol BiometricAuthenticationDelegator {
+public protocol BiometricAuthenticationDelegator: NSObjectProtocol, Sendable {
 
     /// Called when the user has been successfully authenticated via biometrics.
     func authenticated()

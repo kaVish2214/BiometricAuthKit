@@ -23,7 +23,7 @@ import Foundation
 ///     }
 /// }
 /// ```
-public protocol BiometricAuthenticationRequestor: Sendable {
+public protocol BiometricAuthenticationRequestor: NSObjectProtocol, Sendable {
 
     /// Returns whether biometric authentication should be attempted.
     ///

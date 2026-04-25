@@ -38,10 +38,10 @@ public final class BiometricAuthManager: NSObject, BiometricAuthentication, @unc
     private var context: LAContext?
 
     /// The requestor that provides authentication configuration.
-    let requestor: any BiometricAuthenticationRequestor
+    private(set) weak var requestor: (any BiometricAuthenticationRequestor)?
 
     /// The delegator that receives authentication outcome callbacks.
-    let delegator: any BiometricAuthenticationDelegator
+    private(set) weak var delegator: (any BiometricAuthenticationDelegator)?
 
     /// A Boolean value indicating whether an authentication request is currently in progress.
     private(set) public var isAuthRequestInProcess: Bool = false {
@@ -151,7 +151,7 @@ extension BiometricAuthManager {
     /// - Parameter requestTime: The timestamp to record for this authentication request.
     public func authenticate(_ requestTime: Date) {
         guard !isAuthRequestInProcess else { return }
-        if let previous = previousAuthenticationTime,
+        if let previous = previousAuthenticationTime, let requestor,
            requestor.preferredAuthenticationAllowableReuseDuration() > 0,
            requestTime.timeIntervalSince(previous) < requestor.preferredAuthenticationAllowableReuseDuration() {
             notifyAuth(true, error: nil)
@@ -172,7 +172,7 @@ extension BiometricAuthManager {
     ///   - completion: A closure called on the main queue with the authentication result.
     public func authenticate(_ requestTime: Date, completion: @escaping @Sendable (BiometricAuthenticationResult) -> Void) {
         guard !isAuthRequestInProcess else { return }
-        if let previous = previousAuthenticationTime,
+        if let previous = previousAuthenticationTime,let requestor,
            requestor.preferredAuthenticationAllowableReuseDuration() > 0,
            requestTime.timeIntervalSince(previous) < requestor.preferredAuthenticationAllowableReuseDuration() {
             notifyAuth(true, error: nil, completion: completion)
@@ -188,7 +188,7 @@ extension BiometricAuthManager {
     ///   - requestTime: The timestamp to record for this authentication request.
     ///   - completion: An optional closure called on the main queue with the authentication result.
     private func validateAuthenticationRequest(_ requestTime: Date, completion: (@Sendable (BiometricAuthenticationResult) -> Void)? = nil) {
-        guard requestor.canPerformAuthentication() else {
+        guard let requestor, requestor.canPerformAuthentication() else {
             defer {
                 self.isAuthRequestInProcess = false
                 self.previousAuthenticationTime = requestTime
@@ -197,8 +197,8 @@ extension BiometricAuthManager {
             return
         }
         self.context = LAContext()
-        self.context?.localizedFallbackTitle = self.requestor.preferredAuthenticationFallbackTitle()
-        context?.evaluatePolicy(self.requestor.preferredAuthenticationPolicy().contextPolicy, localizedReason: self.requestor.preferredAuthenticationReason()) { [weak self] (success, error) in
+        self.context?.localizedFallbackTitle = requestor.preferredAuthenticationFallbackTitle()
+        context?.evaluatePolicy(requestor.preferredAuthenticationPolicy().contextPolicy, localizedReason: requestor.preferredAuthenticationReason()) { [weak self] (success, error) in
             defer {
                 self?.context = nil
                 self?.isAuthRequestInProcess = false
@@ -233,11 +233,11 @@ extension BiometricAuthManager {
         DispatchQueue.main.async { [weak self] in
             if success {
                 completion?(.success)
-                self?.delegator.authenticated()
+                self?.delegator?.authenticated()
             } else {
                 let contextError = error as? LAError
                 completion?(.failure(.init(contextError)))
-                self?.delegator.authenticationFailed(with: .init(contextError))
+                self?.delegator?.authenticationFailed(with: .init(contextError))
             }
         }
     }
@@ -254,7 +254,7 @@ extension BiometricAuthManager {
             return
         }
         DispatchQueue.main.async { [weak self] in
-            self?.delegator.authenticationRequestInProcess(didChange: value, to: newValue)
+            self?.delegator?.authenticationRequestInProcess(didChange: value, to: newValue)
         }
     }
 }
