@@ -1,6 +1,7 @@
 import Testing
 import LocalAuthentication
-@testable import BiometricAuthKit
+@testable import BiometricAuthInterface
+@testable import BiometricAuth
 
 // MARK: - BiometricAuthenticationType Tests
 

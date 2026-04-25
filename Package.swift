@@ -10,21 +10,28 @@ let package = Package(
         .macOS(.v10_14)
     ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "BiometricAuthKit",
-            targets: ["BiometricAuthKit"]
+            targets: ["BiometricAuth", "BiometricAuthInterface"]
         ),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "BiometricAuthKit"
+            name: "BiometricAuthInterface",
+            path: "Sources/BiometricAuthInterface"
+        ),
+        .target(
+            name: "BiometricAuth",
+            dependencies: [
+              "BiometricAuthInterface"
+            ],
+            path: "Sources/BiometricAuth"
         ),
         .testTarget(
             name: "BiometricAuthKitTests",
-            dependencies: ["BiometricAuthKit"]
+            dependencies: ["BiometricAuthInterface","BiometricAuth"]
         ),
     ],
     swiftLanguageModes: [.v6]

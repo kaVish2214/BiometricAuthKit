@@ -7,6 +7,7 @@
 
 import Foundation
 import LocalAuthentication
+import BiometricAuthInterface
 
 
 /// The concrete implementation of ``BiometricAuthentication`` that manages Face ID and Touch ID
