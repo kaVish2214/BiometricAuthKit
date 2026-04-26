@@ -138,12 +138,18 @@ struct BiometricAuthenticationPolicyTests {
 
 // MARK: - BiometricAuthManager Tests
 
-private struct MockRequestor: BiometricAuthenticationRequestor {
+private final class MockRequestor: NSObject, BiometricAuthenticationRequestor, @unchecked Sendable {
     var canPerform: Bool = true
     var reuseDuration: TimeInterval = 0
     var reason: String = "Authenticate"
     var fallbackTitle: String = "Use Passcode"
     var policy: BiometricAuthenticationPolicy = .ownerAuthentication
+
+    convenience init(canPerform: Bool = true, reuseDuration: TimeInterval = 0) {
+        self.init()
+        self.canPerform = canPerform
+        self.reuseDuration = reuseDuration
+    }
 
     func canPerformAuthentication() -> Bool { canPerform }
     func preferredAuthenticationAllowableReuseDuration() -> TimeInterval { reuseDuration }
@@ -152,7 +158,7 @@ private struct MockRequestor: BiometricAuthenticationRequestor {
     func preferredAuthenticationPolicy() -> BiometricAuthenticationPolicy { policy }
 }
 
-private final class MockDelegator: BiometricAuthenticationDelegator, @unchecked Sendable {
+private final class MockDelegator: NSObject, BiometricAuthenticationDelegator, @unchecked Sendable {
     var didAuthenticate = false
     var authenticateCount = 0
     var authenticationError: BiometricAuthenticationError?
@@ -198,21 +204,27 @@ struct BiometricAuthManagerTests {
 
     @Test("cancelAuthentication does not crash when no request is in progress")
     func cancelWithoutActiveRequest() {
-        let manager = BiometricAuthManager(requestor: MockRequestor(), delegator: MockDelegator())
+        let requestor = MockRequestor()
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
         manager.cancelAuthentication()
         #expect(manager.isAuthRequestInProcess == false)
     }
 
     @Test("invalidateRecentBiometricAuthenticationStamp clears timestamp")
     func invalidateStamp() {
-        let manager = BiometricAuthManager(requestor: MockRequestor(), delegator: MockDelegator())
+        let requestor = MockRequestor()
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
         manager.invalidateRecentBiometricAuthenticationStamp()
         #expect(manager.previousAuthenticationRequestTime == nil)
     }
 
     @Test("isFacialBiometricAuthenticationAvailable returns false when no biometry")
     func facialAuthNotAvailableWithoutBiometry() {
-        let manager = BiometricAuthManager(requestor: MockRequestor(), delegator: MockDelegator())
+        let requestor = MockRequestor()
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
         let authType = manager.availableAuthenticationType
         if authType == .none {
             #expect(manager.isFacialBiometricAuthenticationAvailable == false)
@@ -221,7 +233,9 @@ struct BiometricAuthManagerTests {
 
     @Test("isAuthenticationSupported returns false when availableAuthenticationType is .none")
     func supportedMatchesAvailableType() {
-        let manager = BiometricAuthManager(requestor: MockRequestor(), delegator: MockDelegator())
+        let requestor = MockRequestor()
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
         let authType = manager.availableAuthenticationType
         if authType == .none {
             #expect(manager.isAuthenticationSupported == false)
@@ -230,7 +244,9 @@ struct BiometricAuthManagerTests {
 
     @Test("isAuthenticationPermitted returns false when availableAuthenticationType is .none")
     func permittedMatchesAvailableType() {
-        let manager = BiometricAuthManager(requestor: MockRequestor(), delegator: MockDelegator())
+        let requestor = MockRequestor()
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
         let authType = manager.availableAuthenticationType
         if authType == .none {
             #expect(manager.isAuthenticationPermitted == false)
@@ -256,11 +272,9 @@ struct AuthenticationFlowTests {
 
     @Test("authenticate succeeds when canPerformAuthentication returns false")
     func authSucceedsWhenCanPerformIsFalse() async {
+        let requestor = MockRequestor(canPerform: false)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
         manager.authenticate(Date())
         await drainMainQueue()
         #expect(delegator.didAuthenticate == true)
@@ -268,11 +282,9 @@ struct AuthenticationFlowTests {
 
     @Test("authenticate with completion delivers .success when canPerform is false")
     func authCompletionDeliversSuccess() async {
+        let requestor = MockRequestor(canPerform: false)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
         let result = await withCheckedContinuation { (continuation: CheckedContinuation<BiometricAuthenticationResult, Never>) in
             manager.authenticate(Date()) { result in
                 continuation.resume(returning: result)
@@ -287,11 +299,9 @@ struct AuthenticationFlowTests {
 
     @Test("authenticate stores timestamp after success")
     func authStoresTimestamp() async {
+        let requestor = MockRequestor(canPerform: false)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
         #expect(manager.previousAuthenticationRequestTime == nil)
         manager.authenticate(Date())
         await drainMainQueue()
@@ -301,11 +311,9 @@ struct AuthenticationFlowTests {
 
     @Test("isAuthRequestInProcess transitions to true then back to false")
     func inProcessStateTransitions() async {
+        let requestor = MockRequestor(canPerform: false)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
         manager.authenticate(Date())
         await drainMainQueue()
 
@@ -324,11 +332,9 @@ struct ReuseWindowTests {
 
     @Test("second auth within reuse window succeeds without re-evaluation")
     func reuseWithinWindow() async {
+        let requestor = MockRequestor(canPerform: false, reuseDuration: 5)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false, reuseDuration: 5),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
 
         // First auth — goes through validateAuthenticationRequest
         manager.authenticate(Date())
@@ -348,11 +354,9 @@ struct ReuseWindowTests {
 
     @Test("auth after reuse window expires goes through full evaluation")
     func authAfterWindowExpires() async {
+        let requestor = MockRequestor(canPerform: false, reuseDuration: 5)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false, reuseDuration: 5),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
 
         // First auth at time T
         let firstTime = Date()
@@ -371,11 +375,9 @@ struct ReuseWindowTests {
 
     @Test("completion handler works within reuse window")
     func completionWithinReuseWindow() async {
+        let requestor = MockRequestor(canPerform: false, reuseDuration: 5)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false, reuseDuration: 5),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
 
         // First auth to set the timestamp
         manager.authenticate(Date())
@@ -396,11 +398,9 @@ struct ReuseWindowTests {
 
     @Test("invalidateStamp forces re-evaluation even within reuse window")
     func invalidateStampForcesReEvaluation() async {
+        let requestor = MockRequestor(canPerform: false, reuseDuration: 5)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false, reuseDuration: 5),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
 
         // First auth
         manager.authenticate(Date())
@@ -420,11 +420,9 @@ struct ReuseWindowTests {
 
     @Test("reuse window of zero always requires fresh authentication")
     func zeroReuseAlwaysReEvaluates() async {
+        let requestor = MockRequestor(canPerform: false, reuseDuration: 0)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false, reuseDuration: 0),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
 
         // First auth
         manager.authenticate(Date())
@@ -445,11 +443,9 @@ struct DelegatorDeliveryTests {
 
     @Test("delegator receives authenticated callback when using completion API")
     func delegatorAuthenticatedWithCompletionAPI() async {
+        let requestor = MockRequestor(canPerform: false)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
 
         let result = await withCheckedContinuation { (continuation: CheckedContinuation<BiometricAuthenticationResult, Never>) in
             manager.authenticate(Date()) { result in
@@ -468,11 +464,9 @@ struct DelegatorDeliveryTests {
 
     @Test("delegator receives inProcess changes when using completion API")
     func delegatorInProcessChangesWithCompletionAPI() async {
+        let requestor = MockRequestor(canPerform: false)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
 
         _ = await withCheckedContinuation { (continuation: CheckedContinuation<BiometricAuthenticationResult, Never>) in
             manager.authenticate(Date()) { result in
@@ -489,11 +483,9 @@ struct DelegatorDeliveryTests {
 
     @Test("delegator receives authenticated callback via delegate-only path")
     func delegatorAuthenticatedViaDelegateOnly() async {
+        let requestor = MockRequestor(canPerform: false)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
 
         manager.authenticate(Date())
         await drainMainQueue()
@@ -505,11 +497,9 @@ struct DelegatorDeliveryTests {
 
     @Test("delegator and completion handler both fire for reuse window shortcut")
     func delegatorAndCompletionBothFireOnReuse() async {
+        let requestor = MockRequestor(canPerform: false, reuseDuration: 5)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false, reuseDuration: 5),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
 
         // First auth to set timestamp
         manager.authenticate(Date())
@@ -535,11 +525,9 @@ struct DelegatorDeliveryTests {
 
     @Test("delegator authenticated count increments across multiple calls")
     func delegatorCountIncrementsAcrossCalls() async {
+        let requestor = MockRequestor(canPerform: false)
         let delegator = MockDelegator()
-        let manager = BiometricAuthManager(
-            requestor: MockRequestor(canPerform: false),
-            delegator: delegator
-        )
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
 
         manager.authenticate(Date())
         await drainMainQueue()
@@ -557,7 +545,7 @@ struct DelegatorDeliveryTests {
 
 // MARK: - AuthRequestor Default Implementation Tests
 
-private struct MinimalRequestor: BiometricAuthenticationRequestor {
+private final class MinimalRequestor: NSObject, BiometricAuthenticationRequestor {
     func preferredAuthenticationReason() -> String { "Test reason" }
 }
 
