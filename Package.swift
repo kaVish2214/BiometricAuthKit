@@ -11,8 +11,12 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "BiometricAuthKit",
-            targets: ["BiometricAuth", "BiometricAuthInterface"]
+            name: "BiometricAuth",
+            targets: ["BiometricAuth"]
+        ),
+        .library(
+            name: "BiometricAuthInterface",
+            targets: ["BiometricAuthInterface"]
         ),
     ],
     targets: [
