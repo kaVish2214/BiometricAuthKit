@@ -17,13 +17,13 @@ import Foundation
 /// have default implementations provided in the extension.
 ///
 /// ```swift
-/// struct MyAuthRequest: BiometricAuthenticationRequestor {
+/// final class MyAuthRequest: BiometricAuthenticationRequestor {
 ///     func preferredAuthenticationReason() -> String {
 ///         "Unlock your account"
 ///     }
 /// }
 /// ```
-public protocol BiometricAuthenticationRequestor: NSObjectProtocol, Sendable {
+public protocol BiometricAuthenticationRequestor: AnyObject, Sendable {
 
     /// Returns whether biometric authentication should be attempted.
     ///

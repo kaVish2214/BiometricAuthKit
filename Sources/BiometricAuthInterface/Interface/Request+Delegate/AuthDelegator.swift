@@ -14,7 +14,7 @@ import Foundation
 /// after the user completes (or fails) biometric authentication.
 ///
 /// ```swift
-/// struct MyAuthDelegate: BiometricAuthenticationDelegator {
+/// final class MyAuthDelegate: BiometricAuthenticationDelegator {
 ///     func authenticated() {
 ///         // Proceed to protected content
 ///     }
@@ -28,7 +28,7 @@ import Foundation
 ///     }
 /// }
 /// ```
-public protocol BiometricAuthenticationDelegator: NSObjectProtocol, Sendable {
+public protocol BiometricAuthenticationDelegator: AnyObject, Sendable {
 
     /// Called when the user has been successfully authenticated via biometrics.
     func authenticated()

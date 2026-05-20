@@ -138,7 +138,7 @@ struct BiometricAuthenticationPolicyTests {
 
 // MARK: - BiometricAuthManager Tests
 
-private final class MockRequestor: NSObject, BiometricAuthenticationRequestor, @unchecked Sendable {
+private final class MockRequestor: BiometricAuthenticationRequestor, @unchecked Sendable {
     var canPerform: Bool = true
     var reuseDuration: TimeInterval = 0
     var reason: String = "Authenticate"
@@ -158,7 +158,7 @@ private final class MockRequestor: NSObject, BiometricAuthenticationRequestor, @
     func preferredAuthenticationPolicy() -> BiometricAuthenticationPolicy { policy }
 }
 
-private final class MockDelegator: NSObject, BiometricAuthenticationDelegator, @unchecked Sendable {
+private final class MockDelegator: BiometricAuthenticationDelegator, @unchecked Sendable {
     var didAuthenticate = false
     var authenticateCount = 0
     var authenticationError: BiometricAuthenticationError?
@@ -545,7 +545,7 @@ struct DelegatorDeliveryTests {
 
 // MARK: - AuthRequestor Default Implementation Tests
 
-private final class MinimalRequestor: NSObject, BiometricAuthenticationRequestor {
+private final class MinimalRequestor: BiometricAuthenticationRequestor {
     func preferredAuthenticationReason() -> String { "Test reason" }
 }
 

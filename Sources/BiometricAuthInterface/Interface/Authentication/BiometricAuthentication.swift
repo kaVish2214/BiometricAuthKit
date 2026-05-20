@@ -28,7 +28,7 @@ import Foundation
 ///     auth.authenticate(Date())
 /// }
 /// ```
-public protocol BiometricAuthentication: Sendable {
+public protocol BiometricAuthentication: AnyObject, Sendable {
 
     // MARK: - Initialization
 
