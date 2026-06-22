@@ -21,6 +21,8 @@ import Foundation
 ///     print("Face ID available, permitted: \(permitted)")
 /// case .touchIdentification(let permitted):
 ///     print("Touch ID available, permitted: \(permitted)")
+/// case .opticIdentification(let permitted):
+///     print("Optic ID available, permitted: \(permitted)")
 /// case .none:
 ///     print("No biometric authentication available")
 /// }
@@ -36,6 +38,11 @@ public enum BiometricAuthenticationType: Hashable, Sendable {
     ///
     /// - Parameter permitted: A Boolean value indicating whether the user has granted permission to use Touch ID.
     case touchIdentification(permitted: Bool)
+
+    /// Optic ID (iris-based) authentication, available on Apple Vision Pro.
+    ///
+    /// - Parameter permitted: A Boolean value indicating whether the user has granted permission to use Optic ID.
+    case opticIdentification(permitted: Bool)
 
     /// No biometric authentication is available on the device.
     case none

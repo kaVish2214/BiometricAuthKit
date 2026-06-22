@@ -106,6 +106,12 @@ extension BiometricAuthManager {
 
         guard error == nil else { return .none }
 
+        // Optic ID (`LABiometryType.opticID`) is iOS 17+ / macOS 14+ / visionOS 1+.
+        // On older deployment targets the symbol exists but the runtime never returns it.
+        if #available(iOS 17.0, macOS 14.0, *), context.biometryType == .opticID {
+            return .opticIdentification(permitted: isEvaluateSuccess)
+        }
+
         switch context.biometryType {
         case .faceID:
             return .faceIdentification(permitted: isEvaluateSuccess)
@@ -119,7 +125,7 @@ extension BiometricAuthManager {
     /// A Boolean value indicating whether the user has granted permission to use biometric authentication.
     public var isAuthenticationPermitted: Bool {
         switch availableAuthenticationType {
-        case .faceIdentification(let permitted), .touchIdentification(let permitted):
+        case .faceIdentification(let permitted), .touchIdentification(let permitted), .opticIdentification(let permitted):
             return permitted
         case .none:
             return false
@@ -278,8 +284,9 @@ extension BiometricAuthManager {
     private func notifyAuth(_ success: Bool,
                             error: Error?,
                             completion: (@Sendable (BiometricAuthenticationResult) -> Void)?) {
+        let requestor = state.withLock { $0.requestor }
         let delegator = state.withLock { $0.delegator }
-        DispatchQueue.main.async {
+        requestor?.preferredDelegateQueue.async {
             if success {
                 completion?(.success)
                 delegator?.authenticated()
@@ -300,8 +307,9 @@ extension BiometricAuthManager {
     ///   - newValue: The new value of `isAuthRequestInProcess`.
     private func notifyRequestInProcessChange(from oldValue: Bool, to newValue: Bool) {
         guard oldValue != newValue else { return }
+        let requestor = state.withLock { $0.requestor }
         let delegator = state.withLock { $0.delegator }
-        DispatchQueue.main.async {
+        requestor?.preferredDelegateQueue.async {
             delegator?.authenticationRequestInProcess(didChange: oldValue, to: newValue)
         }
     }

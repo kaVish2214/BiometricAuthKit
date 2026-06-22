@@ -36,11 +36,30 @@ struct BiometricAuthenticationTypeTests {
         #expect(BiometricAuthenticationType.touchIdentification(permitted: true) != .none)
     }
 
+    @Test("opticIdentification cases with different permitted values are not equal")
+    func opticIdentificationEquality() {
+        let permitted = BiometricAuthenticationType.opticIdentification(permitted: true)
+        let notPermitted = BiometricAuthenticationType.opticIdentification(permitted: false)
+        #expect(permitted != notPermitted)
+    }
+
+    @Test("opticIdentification is distinct from face, touch, and none")
+    func opticIdentificationIsDistinct() {
+        let optic = BiometricAuthenticationType.opticIdentification(permitted: true)
+        #expect(optic != .faceIdentification(permitted: true))
+        #expect(optic != .touchIdentification(permitted: true))
+        #expect(optic != .none)
+    }
+
     @Test("hashable conformance produces consistent hashes")
     func hashableConformance() {
         let a = BiometricAuthenticationType.faceIdentification(permitted: true)
         let b = BiometricAuthenticationType.faceIdentification(permitted: true)
         #expect(a.hashValue == b.hashValue)
+
+        let c = BiometricAuthenticationType.opticIdentification(permitted: true)
+        let d = BiometricAuthenticationType.opticIdentification(permitted: true)
+        #expect(c.hashValue == d.hashValue)
     }
 }
 
@@ -144,6 +163,7 @@ private final class MockRequestor: BiometricAuthenticationRequestor, @unchecked 
     var reason: String = "Authenticate"
     var fallbackTitle: String = "Use Passcode"
     var policy: BiometricAuthenticationPolicy = .ownerAuthentication
+    var customQueue: DispatchQueue?
 
     convenience init(canPerform: Bool = true, reuseDuration: TimeInterval = 0) {
         self.init()
@@ -151,6 +171,7 @@ private final class MockRequestor: BiometricAuthenticationRequestor, @unchecked 
         self.reuseDuration = reuseDuration
     }
 
+    var preferredDelegateQueue: DispatchQueue { customQueue ?? .main }
     func canPerformAuthentication() -> Bool { canPerform }
     func preferredAuthenticationAllowableReuseDuration() -> TimeInterval { reuseDuration }
     func preferredAuthenticationReason() -> String { reason }
@@ -697,6 +718,78 @@ struct AuthRequestorDefaultTests {
     func defaultFallbackTitle() {
         #expect(MinimalRequestor().preferredAuthenticationFallbackTitle() == "Please use your passcode.")
     }
+
+    @Test("preferredDelegateQueue defaults to main")
+    func defaultDelegateQueue() {
+        #expect(MinimalRequestor().preferredDelegateQueue === DispatchQueue.main)
+    }
+}
+
+// MARK: - Delegate Queue Dispatch Tests
+
+@Suite("Delegate Queue Dispatch")
+struct DelegateQueueDispatchTests {
+
+    @Test("delegator callback runs on requestor's preferredDelegateQueue")
+    func customDelegateQueueDelivery() async {
+        let key = DispatchSpecificKey<String>()
+        let queue = DispatchQueue(label: "test.custom.delegate.queue")
+        queue.setSpecific(key: key, value: "custom-marker")
+
+        let requestor = MockRequestor(canPerform: false)
+        requestor.customQueue = queue
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
+
+        let marker: String? = await withCheckedContinuation { (continuation: CheckedContinuation<String?, Never>) in
+            delegator.onAuthenticated = {
+                continuation.resume(returning: DispatchQueue.getSpecific(key: key))
+            }
+            manager.authenticate(Date())
+        }
+
+        #expect(marker == "custom-marker")
+    }
+
+    @Test("completion handler runs on requestor's preferredDelegateQueue")
+    func customDelegateQueueDeliversCompletion() async {
+        let key = DispatchSpecificKey<String>()
+        let queue = DispatchQueue(label: "test.custom.delegate.queue.completion")
+        queue.setSpecific(key: key, value: "completion-marker")
+
+        let requestor = MockRequestor(canPerform: false)
+        requestor.customQueue = queue
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
+
+        let marker: String? = await withCheckedContinuation { (continuation: CheckedContinuation<String?, Never>) in
+            manager.authenticate(Date()) { _ in
+                continuation.resume(returning: DispatchQueue.getSpecific(key: key))
+            }
+        }
+
+        #expect(marker == "completion-marker")
+    }
+
+    @Test("default (main) queue is used when requestor does not override")
+    func defaultMainQueueDelivery() async {
+        let key = DispatchSpecificKey<String>()
+        DispatchQueue.main.setSpecific(key: key, value: "main-marker")
+        defer { DispatchQueue.main.setSpecific(key: key, value: nil) }
+
+        let requestor = MockRequestor(canPerform: false) // no customQueue set
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
+
+        let marker: String? = await withCheckedContinuation { (continuation: CheckedContinuation<String?, Never>) in
+            delegator.onAuthenticated = {
+                continuation.resume(returning: DispatchQueue.getSpecific(key: key))
+            }
+            manager.authenticate(Date())
+        }
+
+        #expect(marker == "main-marker")
+    }
 }
 
 // MARK: - Additional BiometricAuthenticationError Tests
@@ -749,14 +842,15 @@ struct BiometricAuthenticationTypeCollectionTests {
         #expect(set.count == 2)
     }
 
-    @Test("Set distinguishes all three case families")
+    @Test("Set distinguishes all four case families")
     func setDistinguishesAllCases() {
         let set: Set<BiometricAuthenticationType> = [
             .faceIdentification(permitted: true),
             .touchIdentification(permitted: true),
+            .opticIdentification(permitted: true),
             .none,
         ]
-        #expect(set.count == 3)
+        #expect(set.count == 4)
     }
 
     @Test("Set distinguishes same case with different associated values")

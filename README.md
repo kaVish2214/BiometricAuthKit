@@ -235,10 +235,30 @@ case .faceIdentification(let permitted):
     // Show a "Use Face ID" affordance, disabled when !permitted
 case .touchIdentification(let permitted):
     // Show a "Use Touch ID" affordance, disabled when !permitted
+case .opticIdentification(let permitted):
+    // Show a "Use Optic ID" affordance (Apple Vision Pro), disabled when !permitted
 case .none:
     // Hide biometric UI entirely
 }
 ```
+
+> **Note:** `.opticIdentification` is only ever returned on iOS 17+ / macOS 14+ / visionOS 1+. On the package's minimum deployment targets (iOS 16 / macOS 13) the case is reachable in the type but the system will never produce it at runtime.
+
+## Customizing the Callback Queue
+
+By default, all delegator callbacks and completion handlers are delivered on `DispatchQueue.main`, so it's safe to drive UI directly. If the consumer maintains its own serial isolation queue, or wants to handle results off the main thread, override `preferredDelegateQueue` on the requestor:
+
+```swift
+final class BackgroundAuthRequestor: BiometricAuthenticationRequestor {
+    private let queue = DispatchQueue(label: "auth.callbacks")
+
+    var preferredDelegateQueue: DispatchQueue { queue }
+
+    func preferredAuthenticationReason() -> String { "Unlock your account" }
+}
+```
+
+Both delegator methods and the `authenticate(_:completion:)` completion closure will be dispatched on the queue returned by this property.
 
 ## Cancellation & Reuse
 
@@ -250,7 +270,7 @@ case .none:
 BiometricAuthKit is designed for Swift 6 strict concurrency:
 
 - **All public types are `Sendable`.** Protocols (`BiometricAuthentication`, `BiometricAuthenticationRequestor`, `BiometricAuthenticationDelegator`) are declared `AnyObject & Sendable`. Value types (`BiometricAuthenticationError`, `BiometricAuthenticationType`, `BiometricAuthenticationResult`, `BiometricAuthenticationPolicy`) conform to `Sendable` directly.
-- **Callbacks are delivered on the main queue.** Both delegator methods (`authenticated()`, `authenticationFailed(with:)`, `authenticationRequestInProcess(didChange:to:)`) and the completion-handler form of `authenticate(_:completion:)` are dispatched via `DispatchQueue.main.async` — safe to drive UI from directly, no extra hop required.
+- **Callbacks are delivered on the requestor's `preferredDelegateQueue`** (defaults to `DispatchQueue.main`). Both delegator methods (`authenticated()`, `authenticationFailed(with:)`, `authenticationRequestInProcess(didChange:to:)`) and the completion-handler form of `authenticate(_:completion:)` are dispatched asynchronously on that queue — safe to drive UI from directly with the default, and easy to redirect off the main thread by overriding the requestor's property.
 - **Completion closures are `@Sendable`.** The `authenticate(_:completion:)` signature accepts `@escaping @Sendable (BiometricAuthenticationResult) -> Void`, so captures are checked by the compiler under strict concurrency.
 - **`BiometricAuthManager` is fully checked `Sendable`** (no `@unchecked` escape hatch on the type). All mutable instance state lives inside an `OSAllocatedUnfairLock<State>`; the only `withLockUnchecked` calls are at the three lines that touch `LAContext`, because Apple has not marked `LAContext` as `Sendable`.
 

@@ -25,6 +25,13 @@ import Foundation
 /// ```
 public protocol BiometricAuthenticationRequestor: AnyObject, Sendable {
 
+    /// The dispatch queue on which delegator callbacks and completion handlers are invoked.
+    ///
+    /// Defaults to `DispatchQueue.main` so callbacks can safely drive UI without an extra hop.
+    /// Override to deliver callbacks on a custom queue — useful when the consumer maintains
+    /// its own serial isolation queue, or when results should be processed off the main thread.
+    var preferredDelegateQueue: DispatchQueue { get }
+
     /// Returns whether biometric authentication should be attempted.
     ///
     /// Return `false` to skip the authentication flow entirely.
@@ -54,6 +61,11 @@ public protocol BiometricAuthenticationRequestor: AnyObject, Sendable {
 // MARK: - Default Implementations
 
 extension BiometricAuthenticationRequestor {
+
+    /// Defaults to `DispatchQueue.main`.
+    public var preferredDelegateQueue: DispatchQueue {
+        .main
+    }
 
     /// Defaults to `true`, allowing authentication to proceed.
     public func canPerformAuthentication() -> Bool {
