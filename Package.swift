@@ -6,8 +6,8 @@ import PackageDescription
 let package = Package(
     name: "BiometricAuthKit",
     platforms: [
-        .iOS(.v12),
-        .macOS(.v10_14)
+        .iOS(.v16),
+        .macOS(.v13)
     ],
     products: [
         .library(

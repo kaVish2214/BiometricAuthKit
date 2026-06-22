@@ -7,6 +7,7 @@
 
 import Foundation
 import LocalAuthentication
+import os
 import BiometricAuthInterface
 
 
@@ -19,43 +20,45 @@ import BiometricAuthInterface
 /// 3. Delivers results to a ``BiometricAuthenticationDelegator`` on the main queue.
 /// 4. Supports authentication reuse within a configurable time window.
 ///
+/// All mutable state is held inside an `OSAllocatedUnfairLock`, making the manager safe to drive
+/// from any thread or task. The class is fully `Sendable` via the protocol's conformance.
+///
 /// ```swift
 /// let manager = BiometricAuthManager(
 ///     requestor: myRequestor,
 ///     delegator: myDelegate
 /// )
 ///
-/// let authType = manager.availableAuthenticationType
-/// if authType != .none {
+/// if manager.availableAuthenticationType != .none {
 ///     manager.authenticate(Date())
 /// }
 /// ```
-public final class BiometricAuthManager: NSObject, BiometricAuthentication, @unchecked Sendable {
+public final class BiometricAuthManager: BiometricAuthentication {
 
-    // MARK: - Properties
+    // MARK: - Lock-Protected State
 
-    /// The current `LAContext` used for an in-progress authentication, or `nil` when idle.
-    private var context: LAContext?
-
-    /// The requestor that provides authentication configuration.
-    private(set) weak var requestor: (any BiometricAuthenticationRequestor)?
-
-    /// The delegator that receives authentication outcome callbacks.
-    private(set) weak var delegator: (any BiometricAuthenticationDelegator)?
-
-    /// A Boolean value indicating whether an authentication request is currently in progress.
-    private(set) public var isAuthRequestInProcess: Bool = false {
-        didSet {
-            self.handleRequestInProcessChange(from: oldValue, to: isAuthRequestInProcess)
-        }
+    /// All mutable instance state lives inside the lock. `LAContext` is not `Sendable`,
+    /// so access touching `context` uses `withLockUnchecked`; everything else uses `withLock`.
+    private struct State {
+        var context: LAContext?
+        var isAuthRequestInProcess: Bool = false
+        var previousAuthenticationTime: Date?
+        weak var requestor: (any BiometricAuthenticationRequestor)?
+        weak var delegator: (any BiometricAuthenticationDelegator)?
     }
 
-    /// The timestamp of the most recent successful authentication, used for reuse duration checks.
-    private(set) var previousAuthenticationTime: Date? = nil
+    private let state: OSAllocatedUnfairLock<State>
+
+    // MARK: - Public Accessors
+
+    /// A Boolean value indicating whether an authentication request is currently in progress.
+    public var isAuthRequestInProcess: Bool {
+        state.withLock { $0.isAuthRequestInProcess }
+    }
 
     /// The date and time of the most recent authentication request, or `nil` if no request has been made.
     public var previousAuthenticationRequestTime: Date? {
-        return previousAuthenticationTime
+        state.withLock { $0.previousAuthenticationTime }
     }
 
     /// A Boolean value indicating whether Face ID is the available biometric method.
@@ -73,10 +76,12 @@ public final class BiometricAuthManager: NSObject, BiometricAuthentication, @unc
     /// - Parameters:
     ///   - requestor: Provides authentication configuration such as reason, policy, and reuse duration.
     ///   - delegator: Receives success or failure callbacks after authentication completes.
-    public required init(requestor: any BiometricAuthenticationRequestor, delegator: any BiometricAuthenticationDelegator) {
-        self.requestor = requestor
-        self.delegator = delegator
-        super.init()
+    public required init(requestor: any BiometricAuthenticationRequestor,
+                         delegator: any BiometricAuthenticationDelegator) {
+        var initial = State()
+        initial.requestor = requestor
+        initial.delegator = delegator
+        self.state = OSAllocatedUnfairLock(uncheckedState: initial)
     }
 }
 
@@ -86,45 +91,31 @@ extension BiometricAuthManager {
 
     /// The type of biometric authentication available on the current device.
     ///
-    /// Evaluates the device's `LAContext` each time it is accessed to determine
-    /// whether Face ID, Touch ID, or no biometry is available, along with the
-    /// user's permission status.
+    /// Evaluates a fresh `LAContext` each time it is accessed to determine whether Face ID,
+    /// Touch ID, or no biometry is available, along with the user's permission status.
     public var availableAuthenticationType: BiometricAuthenticationType {
         let context = LAContext()
         var error: NSError?
-        
-        // Check if biometric authentication is available.
-        // If it is disabled to access FaceID, `canEvaluatePolicy()` returns `false` and `LAError.biometryNotAvailable` is assigned to error.
-        let isEvaluateSuccess = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
 
-        guard error == nil else {
+        // Check if biometric authentication is available.
+        // If FaceID access is disabled, `canEvaluatePolicy` returns `false` and `LAError.biometryNotAvailable` is assigned to error.
+        let isEvaluateSuccess = context.canEvaluatePolicy(
+            .deviceOwnerAuthenticationWithBiometrics,
+            error: &error
+        )
+
+        guard error == nil else { return .none }
+
+        switch context.biometryType {
+        case .faceID:
+            return .faceIdentification(permitted: isEvaluateSuccess)
+        case .touchID:
+            return .touchIdentification(permitted: isEvaluateSuccess)
+        default:
             return .none
         }
-        
-        let type: BiometricAuthenticationType
-        if #available(macOS 10.13.2, *) {
-            // On macOS 10.13.2 or later, determine type by `LABiometryType`
-            switch context.biometryType {
-            case .faceID:
-                type = .faceIdentification(permitted: isEvaluateSuccess)
-            case .touchID:
-                type = .touchIdentification(permitted: isEvaluateSuccess)
-            case .none:
-                type = .none
-            default:
-                type = .none
-            }
-        } else {
-            if isEvaluateSuccess {
-                type = .touchIdentification(permitted: isEvaluateSuccess)
-            } else {
-                type = .none
-            }
-        }
-        
-        return type
     }
-    
+
     /// A Boolean value indicating whether the user has granted permission to use biometric authentication.
     public var isAuthenticationPermitted: Bool {
         switch availableAuthenticationType {
@@ -139,7 +130,7 @@ extension BiometricAuthManager {
     public var isAuthenticationSupported: Bool {
         availableAuthenticationType != .none
     }
-    
+
     /// Initiates a biometric authentication attempt.
     ///
     /// If a previous successful authentication falls within the requestor's
@@ -150,17 +141,9 @@ extension BiometricAuthManager {
     ///
     /// - Parameter requestTime: The timestamp to record for this authentication request.
     public func authenticate(_ requestTime: Date) {
-        guard !isAuthRequestInProcess else { return }
-        if let previous = previousAuthenticationTime, let requestor,
-           requestor.preferredAuthenticationAllowableReuseDuration() > 0,
-           requestTime.timeIntervalSince(previous) < requestor.preferredAuthenticationAllowableReuseDuration() {
-            notifyAuth(true, error: nil)
-            return
-        }
-        isAuthRequestInProcess = true
-        validateAuthenticationRequest(requestTime)
+        authenticateInternal(requestTime, completion: nil)
     }
-    
+
     /// Initiates a biometric authentication attempt and delivers the result via a completion handler.
     ///
     /// Behaves identically to ``authenticate(_:)`` but additionally calls the completion handler
@@ -170,92 +153,156 @@ extension BiometricAuthManager {
     /// - Parameters:
     ///   - requestTime: The timestamp to record for this authentication request.
     ///   - completion: A closure called on the main queue with the authentication result.
-    public func authenticate(_ requestTime: Date, completion: @escaping @Sendable (BiometricAuthenticationResult) -> Void) {
-        guard !isAuthRequestInProcess else { return }
-        if let previous = previousAuthenticationTime,let requestor,
-           requestor.preferredAuthenticationAllowableReuseDuration() > 0,
-           requestTime.timeIntervalSince(previous) < requestor.preferredAuthenticationAllowableReuseDuration() {
-            notifyAuth(true, error: nil, completion: completion)
-            return
-        }
-        isAuthRequestInProcess = true
-        validateAuthenticationRequest(requestTime, completion: completion)
+    public func authenticate(_ requestTime: Date,
+                             completion: @escaping @Sendable (BiometricAuthenticationResult) -> Void) {
+        authenticateInternal(requestTime, completion: completion)
     }
-    
-    /// Validates and presents the system biometric prompt using the requestor's configuration.
+
+    /// Cancels any in-progress authentication request and invalidates the current `LAContext`.
+    public func cancelAuthentication() {
+        let outcome: (context: LAContext?, wasInProgress: Bool) = state.withLockUnchecked { state in
+            let ctx = state.context
+            let was = state.isAuthRequestInProcess
+            state.context = nil
+            state.isAuthRequestInProcess = false
+            return (ctx, was)
+        }
+        outcome.context?.invalidate()
+        if outcome.wasInProgress {
+            notifyRequestInProcessChange(from: true, to: false)
+        }
+    }
+
+    /// Invalidates the stored timestamp of the most recent successful authentication,
+    /// forcing fresh biometric verification on the next call to ``authenticate(_:)``.
+    public func invalidateRecentBiometricAuthenticationStamp() {
+        state.withLock { $0.previousAuthenticationTime = nil }
+    }
+}
+
+// MARK: - Private Implementation
+
+extension BiometricAuthManager {
+
+    private enum Decision {
+        case alreadyInProgress
+        case reuseHit
+        case claimed
+    }
+
+    /// Atomically decides whether to skip, reuse, or claim the in-progress slot, then routes accordingly.
     ///
     /// - Parameters:
     ///   - requestTime: The timestamp to record for this authentication request.
     ///   - completion: An optional closure called on the main queue with the authentication result.
-    private func validateAuthenticationRequest(_ requestTime: Date, completion: (@Sendable (BiometricAuthenticationResult) -> Void)? = nil) {
+    private func authenticateInternal(_ requestTime: Date,
+                                      completion: (@Sendable (BiometricAuthenticationResult) -> Void)?) {
+        // Snapshot the requestor outside the lock so any callout happens unlocked.
+        let requestor = state.withLock { $0.requestor }
+        let reuse = requestor?.preferredAuthenticationAllowableReuseDuration() ?? 0
+
+        // Atomically check reuse window + claim the slot in one critical section.
+        let decision: Decision = state.withLock { state in
+            if state.isAuthRequestInProcess { return .alreadyInProgress }
+            if let previous = state.previousAuthenticationTime,
+               reuse > 0,
+               requestTime.timeIntervalSince(previous) < reuse {
+                return .reuseHit
+            }
+            state.isAuthRequestInProcess = true
+            return .claimed
+        }
+
+        switch decision {
+        case .alreadyInProgress:
+            return
+        case .reuseHit:
+            notifyAuth(true, error: nil, completion: completion)
+        case .claimed:
+            notifyRequestInProcessChange(from: false, to: true)
+            validateAuthenticationRequest(requestTime, completion: completion)
+        }
+    }
+
+    /// Validates the requestor's configuration and presents the system biometric prompt.
+    ///
+    /// - Parameters:
+    ///   - requestTime: The timestamp to record for this authentication request.
+    ///   - completion: An optional closure called on the main queue with the authentication result.
+    private func validateAuthenticationRequest(_ requestTime: Date,
+                                               completion: (@Sendable (BiometricAuthenticationResult) -> Void)?) {
+        let requestor = state.withLock { $0.requestor }
         guard let requestor, requestor.canPerformAuthentication() else {
             defer {
-                self.isAuthRequestInProcess = false
-                self.previousAuthenticationTime = requestTime
+                state.withLock { state in
+                    state.previousAuthenticationTime = requestTime
+                    state.isAuthRequestInProcess = false
+                }
+                notifyRequestInProcessChange(from: true, to: false)
             }
-            self.notifyAuth(true, error: nil, completion: completion)
+            notifyAuth(true, error: nil, completion: completion)
             return
         }
-        self.context = LAContext()
-        self.context?.localizedFallbackTitle = requestor.preferredAuthenticationFallbackTitle()
-        context?.evaluatePolicy(requestor.preferredAuthenticationPolicy().contextPolicy, localizedReason: requestor.preferredAuthenticationReason()) { [weak self] (success, error) in
+
+        // Snapshot the entire requestor configuration outside the lock.
+        let policy = requestor.preferredAuthenticationPolicy().contextPolicy
+        let reason = requestor.preferredAuthenticationReason()
+        let fallbackTitle = requestor.preferredAuthenticationFallbackTitle()
+
+        let context = LAContext()
+        context.localizedFallbackTitle = fallbackTitle
+        state.withLockUnchecked { $0.context = context }
+
+        context.evaluatePolicy(policy, localizedReason: reason) { [weak self] success, error in
+            guard let self else { return }
             defer {
-                self?.context = nil
-                self?.isAuthRequestInProcess = false
-                if success {
-                    self?.previousAuthenticationTime = requestTime
+                self.state.withLockUnchecked { state in
+                    if success {
+                        state.previousAuthenticationTime = requestTime
+                    }
+                    state.context = nil
+                    state.isAuthRequestInProcess = false
                 }
+                self.notifyRequestInProcessChange(from: true, to: false)
             }
-            self?.notifyAuth(success, error: error, completion: completion)
+            self.notifyAuth(success, error: error, completion: completion)
         }
     }
-    
-    /// Cancels any in-progress authentication request and invalidates the current `LAContext`.
-    public func cancelAuthentication() {
-        self.context?.invalidate()
-        self.context = nil
-        self.isAuthRequestInProcess = false
-    }
-    
-    /// Invalidates the stored timestamp of the most recent successful authentication,
-    /// forcing fresh biometric verification on the next call to ``authenticate(_:)``.
-    public func invalidateRecentBiometricAuthenticationStamp() {
-        self.previousAuthenticationTime = nil
-    }
-    
+
     /// Dispatches the authentication result to the delegator and optional completion handler on the main queue.
     ///
     /// - Parameters:
     ///   - success: Whether the authentication attempt succeeded.
     ///   - error: The error returned by the LocalAuthentication framework, or `nil` on success.
     ///   - completion: An optional closure called with the corresponding ``BiometricAuthenticationResult``.
-    private func notifyAuth(_ success: Bool, error: Error?, completion: (@Sendable (BiometricAuthenticationResult) -> Void)? = nil) {
-        DispatchQueue.main.async { [weak self] in
+    private func notifyAuth(_ success: Bool,
+                            error: Error?,
+                            completion: (@Sendable (BiometricAuthenticationResult) -> Void)?) {
+        let delegator = state.withLock { $0.delegator }
+        DispatchQueue.main.async {
             if success {
                 completion?(.success)
-                self?.delegator?.authenticated()
+                delegator?.authenticated()
             } else {
                 let contextError = error as? LAError
                 completion?(.failure(.init(contextError)))
-                self?.delegator?.authenticationFailed(with: .init(contextError))
+                delegator?.authenticationFailed(with: .init(contextError))
             }
         }
     }
-    
+
     /// Notifies the delegator on the main queue when the in-process state changes.
     ///
-    /// This method is a no-op if `value` and `newValue` are equal.
+    /// This method is a no-op if `oldValue` and `newValue` are equal.
     ///
     /// - Parameters:
-    ///   - value: The previous value of ``isAuthRequestInProcess``.
-    ///   - newValue: The new value of ``isAuthRequestInProcess``.
-    private func handleRequestInProcessChange(from value: Bool, to newValue: Bool) {
-        guard value != newValue else {
-            return
-        }
-        DispatchQueue.main.async { [weak self] in
-            self?.delegator?.authenticationRequestInProcess(didChange: value, to: newValue)
+    ///   - oldValue: The previous value of `isAuthRequestInProcess`.
+    ///   - newValue: The new value of `isAuthRequestInProcess`.
+    private func notifyRequestInProcessChange(from oldValue: Bool, to newValue: Bool) {
+        guard oldValue != newValue else { return }
+        let delegator = state.withLock { $0.delegator }
+        DispatchQueue.main.async {
+            delegator?.authenticationRequestInProcess(didChange: oldValue, to: newValue)
         }
     }
 }
-

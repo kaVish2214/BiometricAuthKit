@@ -27,7 +27,7 @@ This split lets feature code stay decoupled from `LocalAuthentication`, makes mo
 
 ## Requirements
 
-- iOS 12.0+ / macOS 10.14+
+- iOS 16.0+ / macOS 13.0+
 - Swift 6.3 toolchain (language mode `.v6`)
 - Xcode 16+
 
@@ -252,15 +252,16 @@ BiometricAuthKit is designed for Swift 6 strict concurrency:
 - **All public types are `Sendable`.** Protocols (`BiometricAuthentication`, `BiometricAuthenticationRequestor`, `BiometricAuthenticationDelegator`) are declared `AnyObject & Sendable`. Value types (`BiometricAuthenticationError`, `BiometricAuthenticationType`, `BiometricAuthenticationResult`, `BiometricAuthenticationPolicy`) conform to `Sendable` directly.
 - **Callbacks are delivered on the main queue.** Both delegator methods (`authenticated()`, `authenticationFailed(with:)`, `authenticationRequestInProcess(didChange:to:)`) and the completion-handler form of `authenticate(_:completion:)` are dispatched via `DispatchQueue.main.async` — safe to drive UI from directly, no extra hop required.
 - **Completion closures are `@Sendable`.** The `authenticate(_:completion:)` signature accepts `@escaping @Sendable (BiometricAuthenticationResult) -> Void`, so captures are checked by the compiler under strict concurrency.
-- **`BiometricAuthManager` is `@unchecked Sendable`.** Its mutable state (`context`, `isAuthRequestInProcess`, `previousAuthenticationTime`) is mutated only from the LocalAuthentication callback and the call site that initiated authentication; the in-process guard (see below) prevents overlap.
+- **`BiometricAuthManager` is fully checked `Sendable`** (no `@unchecked` escape hatch on the type). All mutable instance state lives inside an `OSAllocatedUnfairLock<State>`; the only `withLockUnchecked` calls are at the three lines that touch `LAContext`, because Apple has not marked `LAContext` as `Sendable`.
 
 ## Thread Safety & Re-entrancy
 
-`BiometricAuthManager` is **not** safe to drive concurrently from multiple tasks, but it is safe against accidental double-invocation:
+`BiometricAuthManager` is safe to drive from any thread or task:
 
-- `isAuthRequestInProcess` is checked at the top of both `authenticate(_:)` overloads. A second call made while a prompt is already on screen is a **no-op** — it will not stack a second `LAContext` or trigger duplicate callbacks.
-- State transitions on `isAuthRequestInProcess` are surfaced through `authenticationRequestInProcess(didChange:to:)` on the delegator, so the UI can disable the trigger button or show a spinner without racing the in-process flag.
-- Treat each `BiometricAuthManager` instance as **single-flow**: drive it from one screen / one feature at a time. If you need parallel flows, instantiate one manager per flow.
+- **Concurrent `authenticate(_:)` calls are race-free.** The "check whether a request is in progress" and "claim the slot" steps happen inside a single locked critical section. A second call made while a prompt is already on screen is a **no-op** — it will not stack a second `LAContext` or trigger duplicate callbacks.
+- **`cancelAuthentication()` racing with the LA callback is safe.** The active `LAContext` is captured under the lock and invalidated outside it, so the framework's own evaluation cannot race with `invalidate()`.
+- **State transitions on `isAuthRequestInProcess` are atomic** and surfaced through `authenticationRequestInProcess(didChange:to:)` on the delegator — the UI can disable the trigger button or show a spinner without racing the in-process flag.
+- **Treat each `BiometricAuthManager` instance as single-flow at the product level.** Concurrent callers are *serialized* (the second is silently rejected), not parallelized. If you need genuinely parallel authentication flows (rare), instantiate one manager per flow.
 
 ## Error Mapping
 

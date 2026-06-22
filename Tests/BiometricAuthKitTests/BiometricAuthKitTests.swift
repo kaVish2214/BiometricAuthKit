@@ -543,6 +543,132 @@ struct DelegatorDeliveryTests {
     }
 }
 
+// MARK: - Concurrency Safety Tests
+
+@Suite("Concurrency Safety")
+struct ConcurrencySafetyTests {
+
+    @Test("manager survives concurrent authenticate calls without crashing")
+    func concurrentAuthenticateCalls() async {
+        let requestor = MockRequestor(canPerform: false)
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
+
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<50 {
+                group.addTask { manager.authenticate(Date()) }
+            }
+        }
+        await drainMainQueue()
+
+        // After all races settle, the in-progress slot must be released.
+        #expect(manager.isAuthRequestInProcess == false)
+        // At least one call has to have made it through.
+        #expect(delegator.authenticateCount >= 1)
+    }
+
+    @Test("manager survives cancelAuthentication racing with authenticate")
+    func concurrentCancelAndAuthenticate() async {
+        let requestor = MockRequestor(canPerform: false)
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
+
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<25 {
+                group.addTask { manager.authenticate(Date()) }
+                group.addTask { manager.cancelAuthentication() }
+            }
+        }
+        await drainMainQueue()
+
+        #expect(manager.isAuthRequestInProcess == false)
+    }
+
+    @Test("manager survives invalidateStamp racing with authenticate")
+    func concurrentInvalidateAndAuthenticate() async {
+        let requestor = MockRequestor(canPerform: false, reuseDuration: 60)
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
+
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<25 {
+                group.addTask { manager.authenticate(Date()) }
+                group.addTask { manager.invalidateRecentBiometricAuthenticationStamp() }
+            }
+        }
+        await drainMainQueue()
+
+        #expect(manager.isAuthRequestInProcess == false)
+    }
+
+    @Test("concurrent property reads do not crash or deadlock")
+    func concurrentPropertyReads() async {
+        let requestor = MockRequestor(canPerform: false)
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
+
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<100 {
+                group.addTask {
+                    _ = manager.isAuthRequestInProcess
+                    _ = manager.previousAuthenticationRequestTime
+                    _ = manager.availableAuthenticationType
+                    _ = manager.isAuthenticationSupported
+                    _ = manager.isAuthenticationPermitted
+                    _ = manager.isFacialBiometricAuthenticationAvailable
+                }
+            }
+        }
+    }
+
+    @Test("manager can be passed across detached task boundaries")
+    func sendableConformanceAcrossTasks() async {
+        let requestor = MockRequestor(canPerform: false)
+        let delegator = MockDelegator()
+        let manager: BiometricAuthentication = BiometricAuthManager(requestor: requestor, delegator: delegator)
+
+        // Passing `manager` into a detached task only compiles if it is `Sendable`.
+        await Task.detached {
+            manager.authenticate(Date())
+        }.value
+        await drainMainQueue()
+
+        #expect(delegator.authenticateCount == 1)
+    }
+
+    @Test("concurrent completion-handler authenticate calls all receive a result")
+    func concurrentCompletionHandlers() async {
+        let requestor = MockRequestor(canPerform: false, reuseDuration: 60)
+        let delegator = MockDelegator()
+        let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
+
+        // Prime the reuse window so concurrent calls take the reuse-hit shortcut deterministically.
+        manager.authenticate(Date())
+        await drainMainQueue()
+        delegator.reset()
+
+        let resultCount: Int = await withTaskGroup(of: BiometricAuthenticationResult.self, returning: Int.self) { group in
+            for _ in 0..<30 {
+                group.addTask {
+                    await withCheckedContinuation { (continuation: CheckedContinuation<BiometricAuthenticationResult, Never>) in
+                        manager.authenticate(Date()) { result in
+                            continuation.resume(returning: result)
+                        }
+                    }
+                }
+            }
+            var count = 0
+            for await result in group {
+                if case .success = result { count += 1 }
+            }
+            return count
+        }
+
+        #expect(resultCount == 30)
+        #expect(manager.isAuthRequestInProcess == false)
+    }
+}
+
 // MARK: - AuthRequestor Default Implementation Tests
 
 private final class MinimalRequestor: BiometricAuthenticationRequestor {
