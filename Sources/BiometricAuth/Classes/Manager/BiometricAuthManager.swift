@@ -7,8 +7,8 @@
 
 import Foundation
 import LocalAuthentication
-import os
 import BiometricAuthInterface
+import SwiftConcurrency
 
 
 /// The concrete implementation of ``BiometricAuthentication`` that manages Face ID and Touch ID
@@ -39,6 +39,8 @@ public final class BiometricAuthManager: BiometricAuthentication {
 
     /// All mutable instance state lives inside the lock. `LAContext` is not `Sendable`,
     /// so access touching `context` uses `withLockUnchecked`; everything else uses `withLock`.
+    /// `ConcurrencySafe` picks the best backend (`Mutex` / `OSAllocatedUnfairLock` / `NSLock`)
+    /// at runtime based on the current OS version.
     private struct State {
         var context: LAContext?
         var isAuthRequestInProcess: Bool = false
@@ -47,7 +49,7 @@ public final class BiometricAuthManager: BiometricAuthentication {
         weak var delegator: (any BiometricAuthenticationDelegator)?
     }
 
-    private let state: OSAllocatedUnfairLock<State>
+    private let state: ConcurrencySafeContainer<State>
 
     // MARK: - Public Accessors
 
@@ -78,10 +80,7 @@ public final class BiometricAuthManager: BiometricAuthentication {
     ///   - delegator: Receives success or failure callbacks after authentication completes.
     public required init(requestor: any BiometricAuthenticationRequestor,
                          delegator: any BiometricAuthenticationDelegator) {
-        var initial = State()
-        initial.requestor = requestor
-        initial.delegator = delegator
-        self.state = OSAllocatedUnfairLock(uncheckedState: initial)
+        self.state = ConcurrencySafeContainer(uncheckedState: State(requestor: requestor, delegator: delegator))
     }
 }
 

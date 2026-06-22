@@ -6,8 +6,8 @@ import PackageDescription
 let package = Package(
     name: "BiometricAuthKit",
     platforms: [
-        .iOS(.v16),
-        .macOS(.v13)
+        .iOS(.v14),
+        .macOS(.v10_15)
     ],
     products: [
         .library(
@@ -19,6 +19,9 @@ let package = Package(
             targets: ["BiometricAuthInterface"]
         ),
     ],
+    dependencies: [
+        .package(url: "https://github.com/kaVish2214/UtilityKit", branch: "main")
+    ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
@@ -29,7 +32,8 @@ let package = Package(
         .target(
             name: "BiometricAuth",
             dependencies: [
-              "BiometricAuthInterface"
+              "BiometricAuthInterface",
+              .product(name: "SwiftConcurrency", package: "UtilityKit")
             ],
             path: "Sources/BiometricAuth"
         ),
