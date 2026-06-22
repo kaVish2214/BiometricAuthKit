@@ -80,7 +80,7 @@ public final class BiometricAuthManager: BiometricAuthentication {
     ///   - delegator: Receives success or failure callbacks after authentication completes.
     public required init(requestor: any BiometricAuthenticationRequestor,
                          delegator: any BiometricAuthenticationDelegator) {
-        self.state = ConcurrencySafeContainer(uncheckedState: State(requestor: requestor, delegator: delegator))
+        self.state = ConcurrencySafeContainer(State(requestor: requestor, delegator: delegator))
     }
 }
 
