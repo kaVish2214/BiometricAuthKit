@@ -1,5 +1,5 @@
 {
-  "originHash" : "c42fd997f5013deec598e8047b3de35f46923260374268ec77718291263340c5",
+  "originHash" : "fa4b322af709f2af2ec77730b2ad6ee14a44fb99b2ecb473b5b8f83e22ac51c8",
   "pins" : [
     {
       "identity" : "factory",
@@ -16,7 +16,7 @@
       "location" : "https://github.com/kaVish2214/UtilityKit",
       "state" : {
         "branch" : "main",
-        "revision" : "a33ba90431449af463ecb27573ad1454856c2496"
+        "revision" : "91dbbc242de731835c0de760307a73a2f3fcaf82"
       }
     }
   ],

@@ -42,15 +42,27 @@ public final class BiometricAuthManager: BiometricAuthentication {
     /// `ConcurrencySafe` picks the best backend (`Mutex` / `OSAllocatedUnfairLock` / `NSLock`)
     /// at runtime based on the current OS version.
     private struct State {
+        
+        /// The current `LAContext` used for an in-progress authentication, or `nil` when idle.
         var context: LAContext?
+        
+        /// A Boolean value indicating whether an authentication request is currently in progress.
         var isAuthRequestInProcess: Bool = false
+        
+        /// The timestamp of the most recent successful authentication, used for reuse duration checks.
         var previousAuthenticationTime: Date?
-        weak var requestor: (any BiometricAuthenticationRequestor)?
-        weak var delegator: (any BiometricAuthenticationDelegator)?
     }
+    
+    /// The state that manage thread safe mutating operations.
+    private let state: any ConcurrencyContainerProtocol<State> = ConcurrencySafeContainer(.init())
+    
+    /// The requestor that provides authentication configuration.
+    private(set) nonisolated(unsafe) weak var requestor: (any BiometricAuthenticationRequestor)?
+    
+    /// The delegator that receives authentication outcome callbacks.
+    private(set) nonisolated(unsafe) weak var delegator: (any BiometricAuthenticationDelegator)?
 
-    private let state: ConcurrencySafeContainer<State>
-
+    
     // MARK: - Public Accessors
 
     /// A Boolean value indicating whether an authentication request is currently in progress.
@@ -80,7 +92,8 @@ public final class BiometricAuthManager: BiometricAuthentication {
     ///   - delegator: Receives success or failure callbacks after authentication completes.
     public required init(requestor: any BiometricAuthenticationRequestor,
                          delegator: any BiometricAuthenticationDelegator) {
-        self.state = ConcurrencySafeContainer(State(requestor: requestor, delegator: delegator))
+        self.requestor = requestor
+        self.delegator = delegator
     }
 }
 
@@ -202,8 +215,7 @@ extension BiometricAuthManager {
     ///   - completion: An optional closure called on the main queue with the authentication result.
     private func authenticateInternal(_ requestTime: Date,
                                       completion: (@Sendable (BiometricAuthenticationResult) -> Void)?) {
-        // Snapshot the requestor outside the lock so any callout happens unlocked.
-        let requestor = state.withLock { $0.requestor }
+        
         let reuse = requestor?.preferredAuthenticationAllowableReuseDuration() ?? 0
 
         // Atomically check reuse window + claim the slot in one critical section.
@@ -236,7 +248,6 @@ extension BiometricAuthManager {
     ///   - completion: An optional closure called on the main queue with the authentication result.
     private func validateAuthenticationRequest(_ requestTime: Date,
                                                completion: (@Sendable (BiometricAuthenticationResult) -> Void)?) {
-        let requestor = state.withLock { $0.requestor }
         guard let requestor, requestor.canPerformAuthentication() else {
             defer {
                 state.withLock { state in
@@ -283,16 +294,14 @@ extension BiometricAuthManager {
     private func notifyAuth(_ success: Bool,
                             error: Error?,
                             completion: (@Sendable (BiometricAuthenticationResult) -> Void)?) {
-        let requestor = state.withLock { $0.requestor }
-        let delegator = state.withLock { $0.delegator }
-        requestor?.preferredDelegateQueue.async {
+        requestor?.preferredDelegateQueue.async { [weak self] in
             if success {
                 completion?(.success)
-                delegator?.authenticated()
+                self?.delegator?.authenticated()
             } else {
                 let contextError = error as? LAError
                 completion?(.failure(.init(contextError)))
-                delegator?.authenticationFailed(with: .init(contextError))
+                self?.delegator?.authenticationFailed(with: .init(contextError))
             }
         }
     }
@@ -306,10 +315,8 @@ extension BiometricAuthManager {
     ///   - newValue: The new value of `isAuthRequestInProcess`.
     private func notifyRequestInProcessChange(from oldValue: Bool, to newValue: Bool) {
         guard oldValue != newValue else { return }
-        let requestor = state.withLock { $0.requestor }
-        let delegator = state.withLock { $0.delegator }
-        requestor?.preferredDelegateQueue.async {
-            delegator?.authenticationRequestInProcess(didChange: oldValue, to: newValue)
+        requestor?.preferredDelegateQueue.async { [weak self] in
+            self?.delegator?.authenticationRequestInProcess(didChange: oldValue, to: newValue)
         }
     }
 }
