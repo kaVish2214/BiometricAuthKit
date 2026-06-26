@@ -3,6 +3,15 @@
 
 import PackageDescription
 
+/// swiftSettings
+let swiftSettings: [SwiftSetting] = [
+    .unsafeFlags([
+        "-Xfrontend", "-warn-long-function-bodies=100",
+        "-Xfrontend", "-warn-long-expression-type-checking=100"
+    ])
+]
+
+/// Package
 let package = Package(
     name: "BiometricAuthKit",
     platforms: [
@@ -35,7 +44,8 @@ let package = Package(
               "BiometricAuthInterface",
               .product(name: "SwiftConcurrency", package: "UtilityKit")
             ],
-            path: "Sources/BiometricAuth"
+            path: "Sources/BiometricAuth",
+            swiftSettings: swiftSettings
         ),
         .testTarget(
             name: "BiometricAuthKitTests",
