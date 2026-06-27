@@ -32,7 +32,7 @@ This split lets feature code stay decoupled from `LocalAuthentication`, makes mo
 
 ## Requirements
 
-- iOS 16.0+ / macOS 13.0+
+- iOS 14.0+ / macOS 10.15+
 - Swift 6.3 toolchain (language mode `.v6`)
 - Xcode 16+
 
