@@ -17,7 +17,7 @@ BiometricAuthKit follows semantic versioning. Security fixes are applied to:
 Please report vulnerabilities **privately** via one of these channels:
 
 1. **GitHub Private Vulnerability Reporting** (preferred) — open the repository's **Security** tab and select **Report a vulnerability**. This creates a private advisory only the maintainers can see.
-2. **Email** — `x524qx2792@privaterelay.appleid.com`. Use the subject line `[BiometricAuthKit Security]` and encrypt sensitive details if possible.
+2. **Email** — `92spatter.prose@icloud.com`. Use the subject line `[BiometricAuthKit Security]` and encrypt sensitive details if possible.
 
 Please include:
 

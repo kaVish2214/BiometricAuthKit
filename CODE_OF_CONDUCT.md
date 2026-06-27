@@ -60,7 +60,7 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement at
-**x524qx2792@privaterelay.appleid.com** (subject: `[BiometricAuthKit CoC]`).
+**92spatter.prose@icloud.com** (subject: `[BiometricAuthKit CoC]`).
 
 All complaints will be reviewed and investigated promptly and fairly.
 
