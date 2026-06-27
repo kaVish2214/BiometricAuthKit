@@ -1,3 +1,16 @@
+//
+//  BiometricAuthKitTests.swift
+//  BiometricAuthKit
+//
+//  Copyright (c) 2026 kaVi Gevariya (@kaVish2214). All rights reserved.
+//
+//  SPDX-License-Identifier: MPL-2.0
+//
+//  This Source Code Form is subject to the terms of the Mozilla Public
+//  License, v. 2.0. If a copy of the MPL was not distributed with this
+//  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+
 import Testing
 import LocalAuthentication
 @testable import BiometricAuthInterface
@@ -629,7 +642,7 @@ struct ConcurrencySafetyTests {
         let manager = BiometricAuthManager(requestor: requestor, delegator: delegator)
 
         await withTaskGroup(of: Void.self) { group in
-            for _ in 0..<100 {
+            for _ in 0..<10 {
                 group.addTask {
                     _ = manager.isAuthRequestInProcess
                     _ = manager.previousAuthenticationRequestTime

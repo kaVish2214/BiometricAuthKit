@@ -1,10 +1,15 @@
 # BiometricAuthKit
 
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
+[![Swift 6.3](https://img.shields.io/badge/Swift-6.3-orange.svg)](https://swift.org)
+[![Platforms](https://img.shields.io/badge/Platforms-iOS%2016%2B%20%7C%20macOS%2013%2B-blue.svg)](https://www.apple.com)
+[![SwiftPM](https://img.shields.io/badge/SwiftPM-compatible-brightgreen.svg)](https://www.swift.org/package-manager/)
+
 A lightweight, protocol-oriented Swift package that wraps Apple's `LocalAuthentication` framework to make Face ID and Touch ID authentication simple, testable, and dependency-injection friendly on iOS and macOS.
 
 ## Purpose & Intent
 
-The `LocalAuthentication` framework is powerful but low-level: callers have to manage `LAContext` lifecycles, translate `LAError` codes, marshal callbacks to the main queue, and re-implement common ergonomics like "don't prompt again if the user authenticated five seconds ago" on every project.
+The `LocalAuthentication` framework is powerful but low-level: callers have to manage `LAContext` lifecycles, translate `LAError` codes, marshal the framework's internal-queue callbacks onto whichever queue they actually want, and re-implement common ergonomics like "don't prompt again if the user authenticated five seconds ago" on every project.
 
 **BiometricAuthKit** exists to solve that. It provides:
 
@@ -12,7 +17,7 @@ The `LocalAuthentication` framework is powerful but low-level: callers have to m
 - A **separated interface module** (`BiometricAuthInterface`) so application code, tests, and mocks can depend on protocols and value types — never on the concrete `LocalAuthentication`-backed implementation.
 - **Built-in reuse-window logic** so a previous successful authentication can be honored without re-prompting the user, configurable per request.
 - **Strongly-typed errors and states** (`BiometricAuthenticationError`, `BiometricAuthenticationType`, `BiometricAuthenticationResult`, `BiometricAuthenticationPolicy`) that wrap the framework's `LAError` codes and policies into ergonomic Swift enums with `Sendable` conformance.
-- **Swift 6 / strict concurrency** support — all public types are `Sendable`, and callbacks are delivered on the main queue.
+- **Swift 6 / strict concurrency** support — all public types are `Sendable`, and callbacks are delivered on the requestor's `preferredDelegateQueue` (defaulting to the main queue).
 
 ## Why two products?
 
@@ -37,7 +42,7 @@ Add the package to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/<your-org>/BiometricAuthKit.git", from: "1.0.0")
+    .package(url: "https://github.com/kaVish2214/BiometricAuthKit.git", from: "0.1.0")
 ]
 ```
 
@@ -272,7 +277,7 @@ BiometricAuthKit is designed for Swift 6 strict concurrency:
 - **All public types are `Sendable`.** Protocols (`BiometricAuthentication`, `BiometricAuthenticationRequestor`, `BiometricAuthenticationDelegator`) are declared `AnyObject & Sendable`. Value types (`BiometricAuthenticationError`, `BiometricAuthenticationType`, `BiometricAuthenticationResult`, `BiometricAuthenticationPolicy`) conform to `Sendable` directly.
 - **Callbacks are delivered on the requestor's `preferredDelegateQueue`** (defaults to `DispatchQueue.main`). Both delegator methods (`authenticated()`, `authenticationFailed(with:)`, `authenticationRequestInProcess(didChange:to:)`) and the completion-handler form of `authenticate(_:completion:)` are dispatched asynchronously on that queue — safe to drive UI from directly with the default, and easy to redirect off the main thread by overriding the requestor's property.
 - **Completion closures are `@Sendable`.** The `authenticate(_:completion:)` signature accepts `@escaping @Sendable (BiometricAuthenticationResult) -> Void`, so captures are checked by the compiler under strict concurrency.
-- **`BiometricAuthManager` is fully checked `Sendable`** (no `@unchecked` escape hatch on the type). All mutable instance state lives inside an `OSAllocatedUnfairLock<State>`; the only `withLockUnchecked` calls are at the three lines that touch `LAContext`, because Apple has not marked `LAContext` as `Sendable`.
+- **`BiometricAuthManager` is fully checked `Sendable`** (no `@unchecked` escape hatch on the type). Mutable instance state lives inside a `ConcurrencySafeContainer`, which selects the best locking primitive at runtime — `Mutex` on iOS 18+ / macOS 15+, `OSAllocatedUnfairLock` on iOS 16+ / macOS 13+, `NSLock` otherwise. The `requestor` and `delegator` are held as `weak let` (immutable, atomically zeroed by the runtime), so they're `Sendable`-safe without a lock. The only `withLockUnchecked` calls are at the lines that touch `LAContext`, because Apple has not marked `LAContext` as `Sendable`.
 
 ## Thread Safety & Re-entrancy
 
@@ -303,4 +308,13 @@ Full DocC documentation is available for every public type, protocol, and method
 
 ## License
 
-See the repository for license details.
+BiometricAuthKit is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**. See the [`LICENSE`](LICENSE) file for the full text.
+
+Copyright (c) 2026 kaVi Gevariya ([@kaVish2214](https://github.com/kaVish2214)).
+
+In short, MPL-2.0 is a weak-copyleft license:
+- You may use, modify, and distribute this software in commercial and proprietary projects.
+- Modifications to files originally licensed under MPL-2.0 must remain under MPL-2.0 and be made available under the same terms.
+- The license is file-based — combining this code with proprietary code in a Larger Work is permitted, provided the MPL-licensed files themselves remain under MPL-2.0.
+
+For the official SPDX identifier and the canonical license URL: `SPDX-License-Identifier: MPL-2.0` — https://mozilla.org/MPL/2.0/.

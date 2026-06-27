@@ -2,7 +2,13 @@
 //  BiometricAuthManager.swift
 //  BiometricAuthKit
 //
-//  Created by kavi gevariya on 24/04/26.
+//  Copyright (c) 2026 kaVi Gevariya (@kaVish2214). All rights reserved.
+//
+//  SPDX-License-Identifier: MPL-2.0
+//
+//  This Source Code Form is subject to the terms of the Mozilla Public
+//  License, v. 2.0. If a copy of the MPL was not distributed with this
+//  file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
 
 import Foundation
@@ -17,11 +23,18 @@ import SwiftConcurrency
 /// `BiometricAuthManager` coordinates the full biometric lifecycle:
 /// 1. Evaluates device capabilities and user permissions.
 /// 2. Presents the system biometric prompt configured by a ``BiometricAuthenticationRequestor``.
-/// 3. Delivers results to a ``BiometricAuthenticationDelegator`` on the main queue.
+/// 3. Delivers results to a ``BiometricAuthenticationDelegator`` on the queue chosen by the requestor.
 /// 4. Supports authentication reuse within a configurable time window.
 ///
-/// All mutable state is held inside an `OSAllocatedUnfairLock`, making the manager safe to drive
-/// from any thread or task. The class is fully `Sendable` via the protocol's conformance.
+/// Mutable instance state (`context`, `isAuthRequestInProcess`, `previousAuthenticationTime`) is
+/// held inside a `ConcurrencySafeContainer` — at runtime it picks the best locking primitive
+/// available (`Mutex` on iOS 18+ / `OSAllocatedUnfairLock` on iOS 16+ / `NSLock` otherwise).
+///
+/// The `requestor` and `delegator` are held *outside* the lock as `weak let` properties. A
+/// `weak let` is immutable from the program's perspective — only the Swift runtime zeroes it
+/// (atomically) when the referent deallocates — so it is `Sendable`-safe without an
+/// `nonisolated(unsafe)` annotation, needs no lock, and avoids an extra lock acquisition on
+/// every callback site. The class is fully `Sendable` via the protocol's conformance.
 ///
 /// ```swift
 /// let manager = BiometricAuthManager(
@@ -37,10 +50,16 @@ public final class BiometricAuthManager: BiometricAuthentication {
 
     // MARK: - Lock-Protected State
 
-    /// All mutable instance state lives inside the lock. `LAContext` is not `Sendable`,
-    /// so access touching `context` uses `withLockUnchecked`; everything else uses `withLock`.
-    /// `ConcurrencySafe` picks the best backend (`Mutex` / `OSAllocatedUnfairLock` / `NSLock`)
-    /// at runtime based on the current OS version.
+    /// The lock-protected portion of the manager's state.
+    ///
+    /// `requestor` and `delegator` are intentionally *not* part of this struct — they're held
+    /// at the class level as `weak let` because a `weak let` reference is immutable from the
+    /// program's perspective (only the runtime zeroes it, atomically) and so needs no lock
+    /// protection. Keeping them outside avoids an extra lock acquisition every time we read
+    /// the requestor's config or notify the delegator.
+    ///
+    /// `LAContext` is not `Sendable`, so access touching `context` uses `withLockUnchecked`;
+    /// the Sendable-typed fields use `withLock`.
     private struct State {
         
         /// The current `LAContext` used for an in-progress authentication, or `nil` when idle.
@@ -57,10 +76,18 @@ public final class BiometricAuthManager: BiometricAuthentication {
     private let state: any ConcurrencyContainerProtocol<State> = ConcurrencySafeContainer(.init())
     
     /// The requestor that provides authentication configuration.
-    private(set) nonisolated(unsafe) weak var requestor: (any BiometricAuthenticationRequestor)?
-    
+    ///
+    /// Held as `weak let` rather than inside ``state`` because the Swift
+    /// runtime guarantees atomic weak reference reads — no lock is required to access this
+    /// safely from any thread.
+    weak let requestor: (any BiometricAuthenticationRequestor)?
+
     /// The delegator that receives authentication outcome callbacks.
-    private(set) nonisolated(unsafe) weak var delegator: (any BiometricAuthenticationDelegator)?
+    ///
+    /// Held as `weak let` rather than inside ``state`` because the Swift
+    /// runtime guarantees atomic weak reference reads — no lock is required to access this
+    /// safely from any thread.
+    weak let delegator: (any BiometricAuthenticationDelegator)?
 
     
     // MARK: - Public Accessors
@@ -252,6 +279,7 @@ extension BiometricAuthManager {
             defer {
                 state.withLock { state in
                     state.previousAuthenticationTime = requestTime
+                    state.context = nil
                     state.isAuthRequestInProcess = false
                 }
                 notifyRequestInProcessChange(from: true, to: false)
