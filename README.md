@@ -2,7 +2,7 @@
 
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 [![Swift 6.3](https://img.shields.io/badge/Swift-6.3-orange.svg)](https://swift.org)
-[![Platforms](https://img.shields.io/badge/Platforms-iOS%2016%2B%20%7C%20macOS%2013%2B-blue.svg)](https://www.apple.com)
+[![Platforms](https://img.shields.io/badge/Platforms-iOS%2014%2B%20%7C%20macOS%2010.15%2B-blue.svg)](https://www.apple.com)
 [![SwiftPM](https://img.shields.io/badge/SwiftPM-compatible-brightgreen.svg)](https://www.swift.org/package-manager/)
 
 A lightweight, protocol-oriented Swift package that wraps Apple's `LocalAuthentication` framework to make Face ID and Touch ID authentication simple, testable, and dependency-injection friendly on iOS and macOS.
