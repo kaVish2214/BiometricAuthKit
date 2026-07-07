@@ -28,7 +28,8 @@ let package = Package(
     name: "BiometricAuthKit",
     platforms: [
         .iOS(.v14),
-        .macOS(.v10_15)
+        .macOS(.v10_15),
+        .macCatalyst(.v14)
     ],
     products: [
         .library(

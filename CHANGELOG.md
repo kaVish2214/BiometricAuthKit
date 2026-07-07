@@ -12,6 +12,17 @@ Sections are grouped as:
 
 _No unreleased changes yet._
 
+## [0.1.1] - 2026-07-07
+
+### Added
+
+- **Mac Catalyst support** — the package now declares `.macCatalyst(.v14)`, so `BiometricAuth`
+  and `BiometricAuthInterface` can be consumed from Mac Catalyst app targets (Mac Catalyst 14.0+).
+
+### Changed
+
+- **Bumped `UtilityKit` dependency** from `0.1.0` to `0.1.1`.
+
 ## [0.1.0] - 2026-06-27
 
 Initial public release.
@@ -81,5 +92,6 @@ Semantic versioning summary for this project:
 - **PATCH** — bug fixes, documentation updates, internal refactors, dependency bumps, and test
   additions.
 
-[Unreleased]: https://github.com/kaVish2214/BiometricAuthKit/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/kaVish2214/BiometricAuthKit/compare/0.1.1...HEAD
+[0.1.1]: https://github.com/kaVish2214/BiometricAuthKit/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/kaVish2214/BiometricAuthKit/releases/tag/0.1.0
