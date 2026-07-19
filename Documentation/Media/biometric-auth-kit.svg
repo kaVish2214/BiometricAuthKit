@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480"
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+     role="img"
+     aria-label="BiometricAuthKit: a protocol-oriented wrapper over Apple's LocalAuthentication for Face ID, Touch ID and Optic ID. A caller sends authenticate(_:) into a thread-safe BiometricAuthManager that evaluates the policy, honors a reuse window, maps LAError into typed errors, and delivers results to a delegate and completion handler. Swift 6, iOS 14+, macOS and Mac Catalyst.">
+  <title>BiometricAuthKit — Face ID, Touch ID &amp; Optic ID for Apple platforms</title>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A1A34"/>
+      <stop offset="1" stop-color="#050F1D"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5B8CFF"/>
+      <stop offset="0.5" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#3ECF8E"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0" stop-color="#193668" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#050F1D" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.40"/>
+    </filter>
+    <filter id="spark" x="-120%" y="-120%" width="340%" height="340%">
+      <feGaussianBlur stdDeviation="2.4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="screen"><rect x="376" y="128" width="168" height="256" rx="12"/></clipPath>
+  </defs>
+
+  <rect x="1" y="1" width="898" height="478" rx="24" fill="url(#bg)" stroke="#173157" stroke-width="1.5"/>
+  <ellipse cx="460" cy="252" rx="340" ry="230" fill="url(#glow)"/>
+
+  <!-- ===== brand ===== -->
+  <g transform="translate(44,38)">
+    <path d="M16 1 L29 6 L29 17 C29 25 22 29.5 16 32 C10 29.5 3 25 3 17 L3 6 Z"
+          fill="#0C2247" stroke="url(#brand)" stroke-width="2.3"/>
+    <g stroke="#5B8CFF" stroke-width="1.7" fill="none" stroke-linecap="round">
+      <path d="M9 15 A7 7 0 0 1 23 15 L23 18"/>
+      <path d="M12 15.5 A4 4 0 0 1 20 15.5 L20 20.5"/>
+      <path d="M15.2 16 A1.6 1.6 0 0 1 17 17.6 L17 22"/>
+    </g>
+    <text x="48" y="14" font-size="22" font-weight="700" fill="#EAF1FB">BiometricAuthKit</text>
+    <text x="48" y="34" font-size="12.5" fill="#8AA0C2">Face ID · Touch ID · Optic ID — protocol-oriented &amp; Sendable</text>
+  </g>
+
+  <!-- ===== platform chips (top-right) ===== -->
+  <g font-size="11.5" fill="#C3D2E8" text-anchor="middle">
+    <g transform="translate(566,38)"><rect width="60" height="24" rx="12" fill="#102647" stroke="#284d84"/><text x="30" y="16">Swift 6</text></g>
+    <g transform="translate(634,38)"><rect width="62" height="24" rx="12" fill="#102647" stroke="#284d84"/><text x="31" y="16">iOS 14+</text></g>
+    <g transform="translate(704,38)"><rect width="58" height="24" rx="12" fill="#102647" stroke="#284d84"/><text x="29" y="16">macOS</text></g>
+    <g transform="translate(770,38)"><rect width="86" height="24" rx="12" fill="#102647" stroke="#284d84"/><text x="43" y="16">Mac Catalyst</text></g>
+  </g>
+
+  <!-- ===== biometry node (cycles Face ID / Touch ID / Optic ID) ===== -->
+  <text x="130" y="206" font-size="11" fill="#8AA0C2" text-anchor="middle">Biometry</text>
+  <rect x="44" y="214" width="172" height="86" rx="16" fill="#0C2247" stroke="#274d89" filter="url(#soft)"/>
+
+  <!-- glyph crossfade -->
+  <g transform="translate(80,242)">
+    <!-- Face ID -->
+    <g stroke="#5B8CFF" stroke-width="1.8" fill="none" stroke-linecap="round">
+      <animate attributeName="opacity" dur="6s" repeatCount="indefinite"
+               keyTimes="0;0.28;0.33;0.95;1" values="1;1;0;0;1"/>
+      <path d="M4 9 L4 4 L9 4"/>
+      <path d="M19 4 L24 4 L24 9"/>
+      <path d="M4 19 L4 24 L9 24"/>
+      <path d="M19 24 L24 24 L24 19"/>
+      <line x1="10" y1="11" x2="10" y2="14"/>
+      <line x1="18" y1="11" x2="18" y2="14"/>
+      <path d="M14 12 L14 16 L11.5 16"/>
+      <path d="M10 19 C12 21 16 21 18 19"/>
+    </g>
+    <!-- Touch ID fingerprint -->
+    <g stroke="#3ECF8E" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0">
+      <animate attributeName="opacity" dur="6s" repeatCount="indefinite"
+               keyTimes="0;0.28;0.33;0.61;0.66;1" values="0;0;1;1;0;0"/>
+      <path d="M6 13 A8 8 0 0 1 22 13 L22 17"/>
+      <path d="M9.5 13.5 A4.5 4.5 0 0 1 18.5 13.5 L18.5 19"/>
+      <path d="M13 14 A1.8 1.8 0 0 1 15 15.6 L15 21"/>
+      <path d="M6 18 L6 21"/>
+    </g>
+    <!-- Optic ID eye -->
+    <g stroke="#A78BFA" stroke-width="1.8" fill="none" opacity="0">
+      <animate attributeName="opacity" dur="6s" repeatCount="indefinite"
+               keyTimes="0;0.61;0.66;0.95;1" values="0;0;1;1;0"/>
+      <path d="M3 14 C9 6.5 19 6.5 25 14 C19 21.5 9 21.5 3 14 Z"/>
+      <circle cx="14" cy="14" r="4.2" fill="#A78BFA" stroke="none"/>
+    </g>
+  </g>
+
+  <!-- biometry name crossfade -->
+  <g font-size="14" font-weight="600" text-anchor="middle">
+    <text x="140" y="261" fill="#5B8CFF">Face ID
+      <animate attributeName="opacity" dur="6s" repeatCount="indefinite" keyTimes="0;0.28;0.33;0.95;1" values="1;1;0;0;1"/>
+    </text>
+    <text x="140" y="261" fill="#3ECF8E" opacity="0">Touch ID
+      <animate attributeName="opacity" dur="6s" repeatCount="indefinite" keyTimes="0;0.28;0.33;0.61;0.66;1" values="0;0;1;1;0;0"/>
+    </text>
+    <text x="140" y="261" fill="#A78BFA" opacity="0">Optic ID
+      <animate attributeName="opacity" dur="6s" repeatCount="indefinite" keyTimes="0;0.61;0.66;0.95;1" values="0;0;1;1;0"/>
+    </text>
+  </g>
+  <text x="130" y="286" font-size="9" fill="#8AA0C2" text-anchor="middle">availableAuthenticationType</text>
+
+  <!-- ===== request wire (caller -> manager) ===== -->
+  <line x1="216" y1="256" x2="360" y2="256" stroke="#274d89" stroke-width="2"/>
+  <text x="288" y="247" font-size="9" fill="#6E86AC" text-anchor="middle">authenticate(_:)</text>
+  <g fill="#5B8CFF" filter="url(#spark)">
+    <circle cy="256" r="4">
+      <animate attributeName="cx" values="216;360" dur="1.8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1"/>
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.8;1" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cy="256" r="4">
+      <animate attributeName="cx" values="216;360" dur="1.8s" begin="0.6s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1"/>
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.8;1" dur="1.8s" begin="0.6s" repeatCount="indefinite"/>
+    </circle>
+    <circle cy="256" r="4">
+      <animate attributeName="cx" values="216;360" dur="1.8s" begin="1.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1"/>
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.8;1" dur="1.8s" begin="1.2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- ===== device (BiometricAuthManager) ===== -->
+  <text x="460" y="104" font-size="11" fill="#8AA0C2" text-anchor="middle">BiometricAuthManager</text>
+  <rect x="360" y="112" width="200" height="288" rx="30" fill="#0C2247" stroke="#274d89" stroke-width="2" filter="url(#soft)"/>
+  <rect x="376" y="128" width="168" height="256" rx="12" fill="#071731"/>
+  <rect x="436" y="118" width="48" height="6" rx="3" fill="#274d89"/>
+
+  <g clip-path="url(#screen)">
+    <rect x="376" y="128" width="168" height="256" fill="#071731"/>
+    <text x="392" y="150" font-size="9.5" fill="#61789B">9:41</text>
+
+    <!-- PHASE 1 — evaluating -->
+    <g opacity="0">
+      <animate attributeName="opacity" dur="16s" repeatCount="indefinite" keyTimes="0;0.22;0.25;1" values="1;1;0;0"/>
+      <g>
+        <animateTransform attributeName="transform" type="translate" dur="16s" repeatCount="indefinite"
+                          calcMode="spline" keyTimes="0;0.04;0.24;0.25;1"
+                          keySplines="0.34 0 0.2 1;0 0 1 1;0.4 0 0.2 1;0 0 1 1"
+                          values="0,12;0,0;0,0;0,12;0,12"/>
+        <text x="460" y="184" text-anchor="middle" font-size="14" font-weight="700" fill="#EAF1FB">Authenticate</text>
+        <g stroke="#5B8CFF" stroke-width="2.4" fill="none" stroke-linecap="round">
+          <path d="M424 224 L424 216 L432 216"/>
+          <path d="M488 216 L496 216 L496 224"/>
+          <path d="M424 288 L424 296 L432 296"/>
+          <path d="M488 296 L496 296 L496 288"/>
+          <g stroke="#9DBAF0">
+            <line x1="444" y1="240" x2="444" y2="248"/>
+            <line x1="476" y1="240" x2="476" y2="248"/>
+            <path d="M460 244 L460 258 L454 258"/>
+            <path d="M444 270 C452 278 468 278 476 270"/>
+          </g>
+          <line x1="428" y1="256" x2="492" y2="256" stroke="#CFE0FF" stroke-width="2" opacity="0.9">
+            <animate attributeName="y1" values="222;290;222" dur="1.6s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1"/>
+            <animate attributeName="y2" values="222;290;222" dur="1.6s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1"/>
+          </line>
+        </g>
+        <text x="460" y="356" text-anchor="middle" font-size="10" fill="#8AA0C2">evaluatePolicy · LAContext</text>
+      </g>
+    </g>
+
+    <!-- PHASE 2 — reuse window -->
+    <g opacity="0">
+      <animate attributeName="opacity" dur="16s" repeatCount="indefinite" keyTimes="0;0.25;0.27;0.47;0.5;1" values="0;0;1;1;0;0"/>
+      <g>
+        <animateTransform attributeName="transform" type="translate" dur="16s" repeatCount="indefinite"
+                          calcMode="spline" keyTimes="0;0.27;0.31;0.47;0.5;1"
+                          keySplines="0 0 1 1;0.34 0 0.2 1;0 0 1 1;0.4 0 0.2 1;0 0 1 1"
+                          values="0,12;0,12;0,0;0,0;0,12;0,12"/>
+        <text x="460" y="184" text-anchor="middle" font-size="14" font-weight="700" fill="#EAF1FB">Reuse window</text>
+        <circle cx="460" cy="248" r="27" fill="none" stroke="#3ECF8E" stroke-width="3"/>
+        <line x1="460" y1="248" x2="460" y2="230" stroke="#3ECF8E" stroke-width="3" stroke-linecap="round">
+          <animateTransform attributeName="transform" type="rotate" from="0 460 248" to="360 460 248" dur="4s" repeatCount="indefinite"/>
+        </line>
+        <line x1="460" y1="248" x2="472" y2="254" stroke="#9DBAF0" stroke-width="2.4" stroke-linecap="round"/>
+        <text x="460" y="308" text-anchor="middle" font-size="11" fill="#9DBAF0">Recently authenticated</text>
+        <text x="460" y="324" text-anchor="middle" font-size="11" fill="#3ECF8E">prompt skipped</text>
+        <text x="460" y="356" text-anchor="middle" font-size="10" fill="#8AA0C2">allowableReuseDuration</text>
+      </g>
+    </g>
+
+    <!-- PHASE 3 — typed errors -->
+    <g opacity="0">
+      <animate attributeName="opacity" dur="16s" repeatCount="indefinite" keyTimes="0;0.5;0.52;0.72;0.75;1" values="0;0;1;1;0;0"/>
+      <g>
+        <animateTransform attributeName="transform" type="translate" dur="16s" repeatCount="indefinite"
+                          calcMode="spline" keyTimes="0;0.52;0.56;0.72;0.75;1"
+                          keySplines="0 0 1 1;0.34 0 0.2 1;0 0 1 1;0.4 0 0.2 1;0 0 1 1"
+                          values="0,12;0,12;0,0;0,0;0,12;0,12"/>
+        <text x="460" y="184" text-anchor="middle" font-size="14" font-weight="700" fill="#EAF1FB">Error mapping</text>
+        <rect x="396" y="212" width="128" height="80" rx="12" fill="#2a1420" stroke="#7a2b3a"/>
+        <g stroke="#FF8B9A" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M460 224 L473 246 L447 246 Z"/>
+          <line x1="460" y1="231" x2="460" y2="238"/>
+        </g>
+        <circle cx="460" cy="242" r="1.5" fill="#FF8B9A"/>
+        <text x="460" y="272" text-anchor="middle" font-size="12" font-weight="600" fill="#FF8B9A">.biometryLockedout</text>
+        <text x="460" y="356" text-anchor="middle" font-size="10" fill="#8AA0C2">LAError → typed error</text>
+      </g>
+    </g>
+
+    <!-- PHASE 4 — authenticated / callbacks -->
+    <g opacity="0">
+      <animate attributeName="opacity" dur="16s" repeatCount="indefinite" keyTimes="0;0.75;0.77;0.99;1" values="0;0;1;1;0"/>
+      <g>
+        <animateTransform attributeName="transform" type="translate" dur="16s" repeatCount="indefinite"
+                          calcMode="spline" keyTimes="0;0.77;0.81;0.99;1"
+                          keySplines="0 0 1 1;0.34 0 0.2 1;0 0 1 1;0 0 1 1"
+                          values="0,12;0,12;0,0;0,0;0,12"/>
+        <circle cx="460" cy="212" r="26" fill="#0f3a2c" stroke="#3ECF8E" stroke-width="2"/>
+        <path d="M448 212 L456 220 L472 202" fill="none" stroke="#3ECF8E" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="460" y="262" text-anchor="middle" font-size="15" font-weight="700" fill="#3ECF8E">Authenticated</text>
+        <g fill="#3ECF8E">
+          <circle cx="424" cy="290" r="5"><animate attributeName="opacity" dur="16s" repeatCount="indefinite" keyTimes="0;0.80;0.82;1" values="0.3;0.3;1;1"/></circle>
+          <circle cx="460" cy="290" r="5"><animate attributeName="opacity" dur="16s" repeatCount="indefinite" keyTimes="0;0.83;0.85;1" values="0.3;0.3;1;1"/></circle>
+          <circle cx="496" cy="290" r="5"><animate attributeName="opacity" dur="16s" repeatCount="indefinite" keyTimes="0;0.86;0.88;1" values="0.3;0.3;1;1"/></circle>
+        </g>
+        <text x="460" y="356" text-anchor="middle" font-size="10" fill="#8AA0C2">authenticated() · completion</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ===== feature legend (right) ===== -->
+  <g>
+    <g transform="translate(600,160)">
+      <circle r="5" fill="#5B8CFF"><animate attributeName="r" dur="16s" repeatCount="indefinite" keyTimes="0;0.22;0.25;1" values="7;7;5;5"/><animate attributeName="fill-opacity" dur="16s" repeatCount="indefinite" keyTimes="0;0.22;0.25;1" values="1;1;0.35;0.35"/></circle>
+      <text x="20" y="5" font-size="15.5" font-weight="600" fill="#EAF1FB">Face ID · Touch ID · Optic ID</text>
+      <text x="20" y="24" font-size="11.5" fill="#8AA0C2">wraps LocalAuthentication policies</text>
+    </g>
+    <g transform="translate(600,216)">
+      <circle r="5" fill="#3ECF8E"><animate attributeName="r" dur="16s" repeatCount="indefinite" keyTimes="0;0.25;0.27;0.47;0.5;1" values="5;5;7;7;5;5"/><animate attributeName="fill-opacity" dur="16s" repeatCount="indefinite" keyTimes="0;0.25;0.27;0.47;0.5;1" values="0.35;0.35;1;1;0.35;0.35"/></circle>
+      <text x="20" y="5" font-size="15.5" font-weight="600" fill="#EAF1FB">Reuse window</text>
+      <text x="20" y="24" font-size="11.5" fill="#8AA0C2">honor recent auth · no re-prompt</text>
+    </g>
+    <g transform="translate(600,272)">
+      <circle r="5" fill="#FF8B9A"><animate attributeName="r" dur="16s" repeatCount="indefinite" keyTimes="0;0.5;0.52;0.72;0.75;1" values="5;5;7;7;5;5"/><animate attributeName="fill-opacity" dur="16s" repeatCount="indefinite" keyTimes="0;0.5;0.52;0.72;0.75;1" values="0.35;0.35;1;1;0.35;0.35"/></circle>
+      <text x="20" y="5" font-size="15.5" font-weight="600" fill="#EAF1FB">Typed errors &amp; results</text>
+      <text x="20" y="24" font-size="11.5" fill="#8AA0C2">LAError → BiometricAuthenticationError</text>
+    </g>
+    <g transform="translate(600,328)">
+      <circle r="5" fill="#A78BFA"><animate attributeName="r" dur="16s" repeatCount="indefinite" keyTimes="0;0.75;0.77;0.99;1" values="5;5;7;7;5"/><animate attributeName="fill-opacity" dur="16s" repeatCount="indefinite" keyTimes="0;0.75;0.77;0.99;1" values="0.35;0.35;1;1;0.35"/></circle>
+      <text x="20" y="5" font-size="15.5" font-weight="600" fill="#EAF1FB">Delegate + completion</text>
+      <text x="20" y="24" font-size="11.5" fill="#8AA0C2">callbacks on preferredDelegateQueue</text>
+    </g>
+  </g>
+
+  <!-- ===== ships-as ===== -->
+  <g font-size="11" text-anchor="middle">
+    <g transform="translate(600,402)"><rect width="168" height="22" rx="11" fill="#102647" stroke="#284d84"/><text x="84" y="15" fill="#B9C8DF">BiometricAuthInterface</text></g>
+    <g transform="translate(778,402)"><rect width="100" height="22" rx="11" fill="#102647" stroke="#284d84"/><text x="50" y="15" fill="#B9C8DF">BiometricAuth</text></g>
+  </g>
+
+  <!-- ===== thread-safety pill ===== -->
+  <g transform="translate(44,318)">
+    <rect width="172" height="22" rx="11" fill="#102647" stroke="#284d84"/>
+    <circle cx="16" cy="11" r="4" fill="#3ECF8E"/>
+    <text x="30" y="15" font-size="10.5" fill="#B9C8DF">Sendable · lock-guarded</text>
+  </g>
+
+  <!-- ===== progress ===== -->
+  <rect x="44" y="446" width="812" height="4" rx="2" fill="#12294c"/>
+  <rect x="44" y="446" width="812" height="4" rx="2" fill="url(#brand)">
+    <animate attributeName="width" dur="16s" repeatCount="indefinite" values="0;812"/>
+  </rect>
+</svg>

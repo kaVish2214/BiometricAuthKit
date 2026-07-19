@@ -5,6 +5,11 @@
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%2014%2B%20%7C%20macOS%2010.15%2B%20%7C%20Mac%20Catalyst%2014%2B-blue.svg)](https://www.apple.com)
 [![SwiftPM](https://img.shields.io/badge/SwiftPM-compatible-brightgreen.svg)](https://www.swift.org/package-manager/)
 
+<p align="center">
+  <img src="Documentation/Media/biometric-auth-kit.svg" width="820"
+       alt="BiometricAuthKit at a glance: a caller sends authenticate(_:) into a thread-safe BiometricAuthManager that evaluates the Face ID / Touch ID / Optic ID policy, honors a reuse window, maps LAError into typed errors, and delivers results to a delegate and completion handler.">
+</p>
+
 A lightweight, protocol-oriented Swift package that wraps Apple's `LocalAuthentication` framework to make Face ID and Touch ID authentication simple, testable, and dependency-injection friendly on iOS, macOS, and Mac Catalyst.
 
 ## Purpose & Intent
