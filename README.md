@@ -4,6 +4,8 @@
 [![Swift 6.3](https://img.shields.io/badge/Swift-6.3-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%2014%2B%20%7C%20macOS%2010.15%2B%20%7C%20Mac%20Catalyst%2014%2B-blue.svg)](https://www.apple.com)
 [![SwiftPM](https://img.shields.io/badge/SwiftPM-compatible-brightgreen.svg)](https://www.swift.org/package-manager/)
+[![Swift Package Index](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FkaVish2214%2FBiometricAuthKit%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/kaVish2214/BiometricAuthKit)
+[![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FkaVish2214%2FBiometricAuthKit%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/kaVish2214/BiometricAuthKit)
 
 <p align="center">
   <img src="Documentation/Media/biometric-auth-kit.svg" width="820"
